@@ -1,0 +1,378 @@
+@{
+    ViewData["Title"] = "Kullanıcı Yönetimi";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Kullanıcı Yönetimi</h1>
+        <p class="text-muted mb-0">Sistem kullanıcılarını yönetin</p>
+    </div>
+    <button class="btn btn-primary" id="addUserBtn">
+        <i class="bi bi-person-plus me-2"></i>
+        Yeni Kullanıcı
+    </button>
+</div>
+
+<!-- DataTable -->
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="usersTable" class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Kullanıcı Adı</th>
+                        <th>Ad Soyad</th>
+                        <th>Email</th>
+                        <th>Durum</th>
+                        <th>Roller</th>
+                        <th>Menü Yetkileri</th>
+                        <th>Oluşturulma</th>
+                        <th>Son Giriş</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- DataTable will populate this -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-slide modal-lg">
+        <div class="modal-content modern-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalLabel">Kullanıcı Bilgileri</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId" name="Id" />
+                    
+                    <!-- Kullanıcı Adı -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Kullanıcı Adı <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" id="username" name="Username" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control form-control-sm" id="email" name="Email" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- Ad -->
+                    <div class="mb-3">
+                        <label for="firstName" class="form-label">Ad <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" id="firstName" name="FirstName" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- Soyad -->
+                    <div class="mb-3">
+                        <label for="lastName" class="form-label">Soyad <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" id="lastName" name="LastName" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- Şifre -->
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            Şifre <span class="text-danger">*</span>
+                            <small class="text-muted" id="passwordHelp">(Düzenleme için boş bırakabilirsiniz)</small>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-sm" id="password" name="Password">
+                            <button class="btn btn-outline-info btn-sm" type="button" id="togglePasswordBtn">
+                                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" type="button" id="generatePasswordBtn" style="display: none;">
+                                <i class="bi bi-key"></i>
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" type="button" id="resetPasswordBtn" style="display: none;">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- Durum -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="isActive" name="IsActive" checked>
+                            <label class="form-check-label" for="isActive">
+                                Aktif Kullanıcı
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelUserBtn">
+                    <i class="bi bi-x-lg me-2"></i>
+                    İptal
+                </button>
+                <button type="button" class="btn btn-primary" id="saveUserBtn">
+                    <i class="bi bi-check-lg me-2"></i>
+                    Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Kullanıcı Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bu kullanıcıyı silmek istediğinizden emin misiniz?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Bu işlem geri alınamaz!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash me-2"></i>
+                    Sil
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Role Management Modal -->
+<div class="modal fade" id="userRoleModal" tabindex="-1" aria-labelledby="userRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-slide" style="max-width: 40%; width: 40%;">
+        <div class="modal-content modern-modal">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="userRoleModalLabel">
+                    <i class="bi bi-shield-check me-2"></i>
+                    Kullanıcı Rol Yönetimi
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Kullanıcı Bilgileri Kartı -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-body bg-light">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="avatar-circle bg-primary text-white">
+                                    <i class="bi bi-person-fill fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">Kullanıcı Adı</h6>
+                                        <p class="mb-0 fw-bold" id="modalUserName">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">Ad Soyad</h6>
+                                        <p class="mb-0 fw-bold" id="modalUserFullName">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">E-mail</h6>
+                                        <p class="mb-0 fw-bold" id="modalUserEmail">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">Durum</h6>
+                                        <span class="badge" id="modalUserStatus">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bilgilendirme Mesajları -->
+                <div id="roleModalAlert" class="alert alert-dismissible fade" role="alert" style="display: none;">
+                    <span id="roleModalAlertMessage"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="row">
+                    <!-- Mevcut Roller -->
+                    <div class="col-lg-6">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-shield-fill me-2"></i>
+                                    Kullanıcının Mevcut Rolleri
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div style="height: 400px; overflow-y: auto;">
+                                    <div id="assignedUserRolesList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Rol Ekleme -->
+                    <div class="col-lg-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-shield-plus me-2"></i>
+                                    Yeni Rol Ekle
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="p-3 border-bottom">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm" id="roleSearchInput" 
+                                               placeholder="Rol ara...">
+                                    </div>
+                                </div>
+                                <div style="height: 350px; overflow-y: auto;">
+                                    <div id="availableUserRolesList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Menu Permissions Modal -->
+<div class="modal fade" id="userMenuPermissionsModal" tabindex="-1" aria-labelledby="userMenuPermissionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-slide" style="max-width: 40%; width: 40%;">
+        <div class="modal-content modern-modal">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="userMenuPermissionsModalLabel">
+                    <i class="bi bi-list-ul me-2"></i>
+                    Kullanıcı Menü Yetkileri
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Kullanıcı Bilgileri Kartı -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-body bg-light">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="avatar-circle bg-warning text-dark">
+                                    <i class="bi bi-person-fill fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">Kullanıcı Adı</h6>
+                                        <p class="mb-0 fw-bold" id="modalMenuUserName">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">Ad Soyad</h6>
+                                        <p class="mb-0 fw-bold" id="modalMenuUserFullName">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">E-mail</h6>
+                                        <p class="mb-0 fw-bold" id="modalMenuUserEmail">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">Durum</h6>
+                                        <span class="badge" id="modalMenuUserStatus">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bilgilendirme Mesajları -->
+                <div id="menuModalAlert" class="alert alert-dismissible fade" role="alert" style="display: none;">
+                    <span id="menuModalAlertMessage"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="row">
+                    <!-- Mevcut Menü Yetkileri -->
+                    <div class="col-lg-6">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-list-ul me-2"></i>
+                                    Kullanıcının Menü Yetkileri
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div style="height: 400px; overflow-y: auto;">
+                                    <div id="assignedUserMenusList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Menü Yetkisi Ekleme -->
+                    <div class="col-lg-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    Yeni Menü Yetkisi Ekle
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="p-3 border-bottom">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm" id="menuSearchInput" 
+                                               placeholder="Menü ara...">
+                                    </div>
+                                </div>
+                                <div style="height: 350px; overflow-y: auto;">
+                                    <div id="availableUserMenusList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- User Management JS -->
+    <script src="~/js/user-management.js"></script>
+}

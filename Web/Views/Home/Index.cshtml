@@ -1,8 +1,256 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- Dashboard Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1">Dashboard</h1>
+                <p class="text-muted mb-0">Hoş geldiniz, @ViewBag.FirstName @ViewBag.LastName! ERP sisteminize genel bakış.</p>
+            </div>
+            <div>
+                <span class="badge bg-success">
+                    <i class="bi bi-circle-fill me-1"></i>
+                    Sistem Aktif
+                </span>
+            </div>
+        </div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="dashboard-card">
+                <div class="d-flex align-items-center">
+                    <div class="icon bg-primary me-3">
+                        <i class="bi bi-boxes"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Toplam Ürün</h6>
+                        <h3 class="mb-0">1,234</h3>
+                    </div>
+                </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="dashboard-card">
+                <div class="d-flex align-items-center">
+                    <div class="icon bg-success me-3">
+                        <i class="bi bi-cart3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Toplam Sipariş</h6>
+                        <h3 class="mb-0">567</h3>
+                    </div>
+                </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="dashboard-card">
+                <div class="d-flex align-items-center">
+                    <div class="icon bg-warning me-3">
+                        <i class="bi bi-currency-dollar"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Toplam Gelir</h6>
+                        <h3 class="mb-0">₺45,678</h3>
+                    </div>
+                </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="dashboard-card">
+                <div class="d-flex align-items-center">
+                    <div class="icon bg-info me-3">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Aktif Kullanıcı</h6>
+                        <h3 class="mb-0">89</h3>
+                    </div>
+                </div>
+        </div>
+    </div>
 </div>
+
+<!-- Main Content Grid -->
+<div class="row g-4">
+    <!-- Recent Orders -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Son Siparişler</h5>
+                <a href="#" class="btn btn-sm btn-outline-primary">Tümünü Gör</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Sipariş No</th>
+                                <th>Müşteri</th>
+                                <th>Tutar</th>
+                                <th>Durum</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>#12345</td>
+                                <td>Ahmet Yılmaz</td>
+                                <td>₺1,250</td>
+                                <td><span class="badge bg-success">Tamamlandı</span></td>
+                                <td>2 saat önce</td>
+                            </tr>
+                            <tr>
+                                <td>#12344</td>
+                                <td>Fatma Demir</td>
+                                <td>₺890</td>
+                                <td><span class="badge bg-warning">Beklemede</span></td>
+                                <td>4 saat önce</td>
+                            </tr>
+                            <tr>
+                                <td>#12343</td>
+                                <td>Mehmet Kaya</td>
+                                <td>₺2,100</td>
+                                <td><span class="badge bg-danger">İptal</span></td>
+                                <td>6 saat önce</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Hızlı İşlemler</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <a href="#" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center text-decoration-none">
+                            <i class="bi bi-plus fa-2x mb-2"></i>
+                            <span>Yeni Ürün</span>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="#" class="btn btn-outline-success w-100 h-100 d-flex flex-column align-items-center justify-content-center text-decoration-none">
+                            <i class="bi bi-cart3 fa-2x mb-2"></i>
+                            <span>Yeni Sipariş</span>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="#" class="btn btn-outline-info w-100 h-100 d-flex flex-column align-items-center justify-content-center text-decoration-none">
+                            <i class="bi bi-person-plus fa-2x mb-2"></i>
+                            <span>Müşteri Ekle</span>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="#" class="btn btn-outline-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center text-decoration-none">
+                            <i class="bi bi-bar-chart fa-2x mb-2"></i>
+                            <span>Raporlar</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Status -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Sistem Durumu</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Veritabanı</span>
+                    <span class="badge bg-success">Aktif</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>API Servisleri</span>
+                    <span class="badge bg-success">Aktif</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>E-posta Servisi</span>
+                    <span class="badge bg-warning">Bakımda</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Yedekleme</span>
+                    <span class="badge bg-success">Aktif</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Son Aktiviteler</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-primary"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Yeni sipariş alındı</h6>
+                            <p class="text-muted mb-1">#12345 numaralı sipariş Ahmet Yılmaz tarafından verildi</p>
+                            <small class="text-muted">2 saat önce</small>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Stok güncellendi</h6>
+                            <p class="text-muted mb-1">"Laptop" ürününün stok miktarı 50'ye güncellendi</p>
+                            <small class="text-muted">4 saat önce</small>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-warning"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Stok uyarısı</h6>
+                            <p class="text-muted mb-1">"Mouse" ürününün stok miktarı kritik seviyede</p>
+                            <small class="text-muted">6 saat önce</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 3px solid #dee2e6;
+}
+</style>

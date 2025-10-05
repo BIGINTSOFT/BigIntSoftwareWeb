@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using Web.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
@@ -15,6 +17,9 @@ namespace Web.Controllers
 
         public IActionResult Index()
         {
+            ViewBag.UserName = User.Identity?.Name;
+            ViewBag.FirstName = User.FindFirst("FirstName")?.Value;
+            ViewBag.LastName = User.FindFirst("LastName")?.Value;
             return View();
         }
 

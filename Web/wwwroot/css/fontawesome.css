@@ -1,0 +1,92 @@
+/* Font Awesome 6.4.0 - Essential Icons Only */
+/* This is a minimal version with only the icons we use */
+
+/* Base styles */
+.fas, .far, .fab, .fal, .fad, .fa {
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  line-height: 1;
+  text-rendering: auto;
+}
+
+/* Font weights */
+.fas { font-family: "Font Awesome 6 Free"; font-weight: 900; }
+.far { font-family: "Font Awesome 6 Free"; font-weight: 400; }
+.fab { font-family: "Font Awesome 6 Brands"; font-weight: 400; }
+
+/* Icons we use in the project */
+.fa-user:before { content: "\f007"; }
+.fa-lock:before { content: "\f023"; }
+.fa-sign-in-alt:before { content: "\f2f6"; }
+.fa-sign-out-alt:before { content: "\f2f5"; }
+.fa-bars:before { content: "\f0c9"; }
+.fa-search:before { content: "\f002"; }
+.fa-bell:before { content: "\f0f3"; }
+.fa-user-circle:before { content: "\f2bd"; }
+.fa-cog:before { content: "\f013"; }
+.fa-key:before { content: "\f084"; }
+.fa-tachometer-alt:before { content: "\f3fd"; }
+.fa-boxes:before { content: "\f468"; }
+.fa-shopping-cart:before { content: "\f07a"; }
+.fa-users:before { content: "\f0c0"; }
+.fa-chart-line:before { content: "\f201"; }
+.fa-chart-bar:before { content: "\f080"; }
+.fa-chart-pie:before { content: "\f200"; }
+.fa-plus:before { content: "\f067"; }
+.fa-list:before { content: "\f03a"; }
+.fa-chevron-down:before { content: "\f078"; }
+.fa-chevron-up:before { content: "\f077"; }
+.fa-chevron-left:before { content: "\f053"; }
+.fa-chevron-right:before { content: "\f054"; }
+.fa-circle:before { content: "\f111"; }
+.fa-info-circle:before { content: "\f05a"; }
+.fa-lira-sign:before { content: "\f195"; }
+.fa-user-plus:before { content: "\f234"; }
+.fa-times:before { content: "\f00d"; }
+.fa-check:before { content: "\f00c"; }
+.fa-exclamation-triangle:before { content: "\f071"; }
+.fa-exclamation-circle:before { content: "\f06a"; }
+.fa-spinner:before { content: "\f110"; }
+.fa-spinner:before { content: "\f110"; }
+
+/* Spinner animation */
+.fa-spinner {
+  animation: fa-spin 2s infinite linear;
+}
+
+@keyframes fa-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Size variations */
+.fa-xs { font-size: 0.75em; }
+.fa-sm { font-size: 0.875em; }
+.fa-lg { font-size: 1.33333em; line-height: 0.75em; vertical-align: -0.0667em; }
+.fa-xl { font-size: 1.5em; }
+.fa-2x { font-size: 2em; }
+.fa-3x { font-size: 3em; }
+.fa-4x { font-size: 4em; }
+.fa-5x { font-size: 5em; }
+
+/* Fixed width */
+.fa-fw { text-align: center; width: 1.25em; }
+
+/* List variations */
+.fa-ul { list-style-type: none; margin-left: 2.5em; padding-left: 0; }
+.fa-ul > li { position: relative; }
+.fa-li { left: -2em; position: absolute; text-align: center; width: 2em; line-height: inherit; }
+
+/* Border and pull variations */
+.fa-border { border: solid 0.08em #eee; border-radius: 0.1em; padding: 0.2em 0.25em 0.15em; }
+
+/* Pull variations */
+.fa-pull-left { float: left; }
+.fa-pull-right { float: right; }
+
+/* Spacing */
+.fa-pull-left { margin-right: 0.3em; }
+.fa-pull-right { margin-left: 0.3em; }

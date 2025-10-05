@@ -1,0 +1,128 @@
+@model IEnumerable<Entities.Entity.Menu>
+
+@if (Model != null && Model.Any())
+{
+    @foreach (var menu in Model)
+    {
+        @if (menu.Children != null && menu.Children.Any())
+        {
+            <!-- Ana menü (alt menüleri olan) -->
+            @if (!string.IsNullOrEmpty(menu.Controller) && !string.IsNullOrEmpty(menu.Action))
+            {
+                <!-- Ana menü hem tıklanabilir hem de alt menüleri var -->
+                <div class="nav-link-container">
+                    <a href="#" class="nav-link" data-submenu-toggle="@($"submenu-{menu.Id}")">
+                        <i class="@menu.Icon me-2 nav-icon-clickable" 
+                           data-controller="@menu.Controller" 
+                           data-action="@menu.Action"
+                           title="@menu.Name sayfasına git"></i>
+                        @menu.Name
+                        <i class="bi bi-chevron-down submenu-arrow ms-auto"></i>
+                    </a>
+                </div>
+            }
+            else
+            {
+                <!-- Ana menü sadece alt menüleri var, tıklanamaz -->
+                <a href="#" class="nav-link" data-submenu-toggle="@($"submenu-{menu.Id}")">
+                    <i class="@menu.Icon me-2"></i>
+                    @menu.Name
+                    <i class="bi bi-chevron-down submenu-arrow ms-auto"></i>
+                </a>
+            }
+            <div class="submenu" id="@($"submenu-{menu.Id}")">
+                @foreach (var subMenu in menu.Children)
+                {
+                    @if (subMenu.Children != null && subMenu.Children.Any())
+                    {
+                        <!-- 2. seviye menü (alt menüleri olan) -->
+                        <a href="#" class="nav-link submenu-item" data-submenu-toggle="@($"submenu-{subMenu.Id}")">
+                            <i class="@subMenu.Icon me-2"></i>
+                            @subMenu.Name
+                            <i class="bi bi-chevron-down submenu-arrow ms-auto"></i>
+                        </a>
+                        <div class="submenu submenu-level-2" id="@($"submenu-{subMenu.Id}")">
+                            @foreach (var subSubMenu in subMenu.Children)
+                            {
+                                @if (!string.IsNullOrEmpty(subSubMenu.Controller) && !string.IsNullOrEmpty(subSubMenu.Action))
+                                {
+                                    <a asp-controller="@subSubMenu.Controller" asp-action="@subSubMenu.Action" 
+                                       class="nav-link submenu-item submenu-level-2-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == subSubMenu.Controller && ViewContext.RouteData.Values["Action"]?.ToString() == subSubMenu.Action ? "active" : "")">
+                                        <i class="@subSubMenu.Icon me-2"></i>
+                                        @subSubMenu.Name
+                                    </a>
+                                }
+                                else if (!string.IsNullOrEmpty(subSubMenu.Url))
+                                {
+                                    <a href="@subSubMenu.Url" class="nav-link submenu-item submenu-level-2-item">
+                                        <i class="@subSubMenu.Icon me-2"></i>
+                                        @subSubMenu.Name
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" class="nav-link submenu-item submenu-level-2-item">
+                                        <i class="@subSubMenu.Icon me-2"></i>
+                                        @subSubMenu.Name
+                                    </a>
+                                }
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- 2. seviye menü (alt menüsü olmayan) -->
+                        @if (!string.IsNullOrEmpty(subMenu.Controller) && !string.IsNullOrEmpty(subMenu.Action))
+                        {
+                            <a asp-controller="@subMenu.Controller" asp-action="@subMenu.Action" 
+                               class="nav-link submenu-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == subMenu.Controller && ViewContext.RouteData.Values["Action"]?.ToString() == subMenu.Action ? "active" : "")">
+                                <i class="@subMenu.Icon me-2"></i>
+                                @subMenu.Name
+                            </a>
+                        }
+                        else if (!string.IsNullOrEmpty(subMenu.Url))
+                        {
+                            <a href="@subMenu.Url" class="nav-link submenu-item">
+                                <i class="@subMenu.Icon me-2"></i>
+                                @subMenu.Name
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="#" class="nav-link submenu-item">
+                                <i class="@subMenu.Icon me-2"></i>
+                                @subMenu.Name
+                            </a>
+                        }
+                    }
+                }
+            </div>
+        }
+        else
+        {
+            <!-- Alt menüsü olmayan menü -->
+            @if (!string.IsNullOrEmpty(menu.Controller) && !string.IsNullOrEmpty(menu.Action))
+            {
+                <a asp-controller="@menu.Controller" asp-action="@menu.Action" 
+                   class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == menu.Controller && ViewContext.RouteData.Values["Action"]?.ToString() == menu.Action ? "active" : "")">
+                    <i class="@menu.Icon me-2"></i>
+                    @menu.Name
+                </a>
+            }
+            else if (!string.IsNullOrEmpty(menu.Url))
+            {
+                <a href="@menu.Url" class="nav-link">
+                    <i class="@menu.Icon me-2"></i>
+                    @menu.Name
+                </a>
+            }
+            else
+            {
+                <a href="#" class="nav-link">
+                    <i class="@menu.Icon me-2"></i>
+                    @menu.Name
+                </a>
+            }
+        }
+    }
+}
