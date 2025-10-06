@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Bussiness.Repository.Abstract;
 using Entities.Entity;
 using Entities.Dto;
+using System.Security.Claims;
 
 namespace BigIntSoftwareWeb.Controllers
 {
@@ -12,17 +13,38 @@ namespace BigIntSoftwareWeb.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IRoleRepository _roleRepository;
         private readonly IMenuRepository _menuRepository;
+        private readonly IPermissionRepository _permissionRepository;
 
-        public UserController(IUserRepository userRepository, IRoleRepository roleRepository, IMenuRepository menuRepository)
+        public UserController(IUserRepository userRepository, IRoleRepository roleRepository, 
+            IMenuRepository menuRepository, IPermissionRepository permissionRepository)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _menuRepository = menuRepository;
+            _permissionRepository = permissionRepository;
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier);
+            return userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId) ? userId : null;
+        }
+
+        private async Task<bool> HasPermissionAsync(string permissionCode, int? menuId = null)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return false;
+            return await _permissionRepository.HasPermissionAsync(userId.Value, permissionCode, menuId);
         }
 
         // GET: User
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            // Kullanıcı Yönetimi menü ID'si: 2
+            if (!await HasPermissionAsync("VIEW", 2))
+            {
+                return Forbid();
+            }
             return View();
         }
 
@@ -30,6 +52,11 @@ namespace BigIntSoftwareWeb.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUsers()
         {
+            if (!await HasPermissionAsync("VIEW", 2))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
             try
             {
                 var users = await _userRepository.GetAllAsync();
@@ -57,6 +84,11 @@ namespace BigIntSoftwareWeb.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUser(int id)
         {
+            if (!await HasPermissionAsync("VIEW", 2))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
             try
             {
                 var user = await _userRepository.GetByIdAsync(id);
@@ -90,6 +122,11 @@ namespace BigIntSoftwareWeb.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateUserDto model)
         {
+            if (!await HasPermissionAsync("CREATE", 2))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
             try
             {
                 if (!ModelState.IsValid)
@@ -140,6 +177,11 @@ namespace BigIntSoftwareWeb.Controllers
         [HttpPut]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto model)
         {
+            if (!await HasPermissionAsync("EDIT", 2))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
             try
             {
                 if (!ModelState.IsValid)
@@ -197,6 +239,11 @@ namespace BigIntSoftwareWeb.Controllers
         [HttpDelete]
         public async Task<IActionResult> Delete(int id)
         {
+            if (!await HasPermissionAsync("DELETE", 2))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
             try
             {
                 var user = await _userRepository.GetByIdAsync(id);

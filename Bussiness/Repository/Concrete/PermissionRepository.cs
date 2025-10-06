@@ -78,5 +78,27 @@ namespace Bussiness.Repository.Concrete
 
             return hasUserPermission;
         }
+
+        public async Task<IEnumerable<string>> GetUserPermissionCodesAsync(int userId, int? menuId = null)
+        {
+            var permissions = await GetUserPermissionsAsync(userId);
+            
+            return permissions
+                .Where(p => menuId == null || 
+                           p.RolePermissions.Any(rp => rp.MenuId == menuId) || 
+                           p.UserPermissions.Any(up => up.MenuId == menuId))
+                .Select(p => p.Code ?? "")
+                .Where(code => !string.IsNullOrEmpty(code));
+        }
+
+        public async Task<bool> HasAnyPermissionAsync(int userId, IEnumerable<string> permissionCodes, int? menuId = null)
+        {
+            foreach (var permissionCode in permissionCodes)
+            {
+                if (await HasPermissionAsync(userId, permissionCode, menuId))
+                    return true;
+            }
+            return false;
+        }
     }
 }

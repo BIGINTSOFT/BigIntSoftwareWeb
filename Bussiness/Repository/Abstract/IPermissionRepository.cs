@@ -9,5 +9,7 @@ namespace Bussiness.Repository.Abstract
         Task<IEnumerable<Permission>> GetUserPermissionsAsync(int userId);
         Task<IEnumerable<Permission>> GetRolePermissionsAsync(int roleId);
         Task<bool> HasPermissionAsync(int userId, string permissionCode, int? menuId = null);
+        Task<IEnumerable<string>> GetUserPermissionCodesAsync(int userId, int? menuId = null);
+        Task<bool> HasAnyPermissionAsync(int userId, IEnumerable<string> permissionCodes, int? menuId = null);
     }
 }

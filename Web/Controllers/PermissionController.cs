@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Bussiness.Repository.Abstract;
 using Entities.Entity;
 using Entities.Dto;
+using System.Security.Claims;
 
 namespace Web.Controllers
 {
@@ -16,14 +17,37 @@ namespace Web.Controllers
             _permissionRepository = permissionRepository;
         }
 
-        public IActionResult Index()
+        private int? GetCurrentUserId()
         {
+            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier);
+            return userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId) ? userId : null;
+        }
+
+        private async Task<bool> HasPermissionAsync(string permissionCode, int? menuId = null)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return false;
+            return await _permissionRepository.HasPermissionAsync(userId.Value, permissionCode, menuId);
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            // Permission Yönetimi menü ID'si: 4 (varsayılan)
+            if (!await HasPermissionAsync("VIEW", 4))
+            {
+                return Forbid();
+            }
             return View();
         }
 
         [HttpGet]
         public async Task<IActionResult> GetPermissions()
         {
+            if (!await HasPermissionAsync("VIEW", 4))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
             try
             {
                 var permissions = await _permissionRepository.GetAllAsync();
@@ -82,6 +106,11 @@ namespace Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreatePermissionDto model)
         {
+            if (!await HasPermissionAsync("CREATE", 4))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
             if (!ModelState.IsValid)
             {
                 return Json(new { error = "Geçersiz veri", errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
@@ -117,6 +146,11 @@ namespace Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Update([FromBody] UpdatePermissionDto model)
         {
+            if (!await HasPermissionAsync("EDIT", 4))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
             if (!ModelState.IsValid)
             {
                 return Json(new { error = "Geçersiz veri", errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
@@ -159,6 +193,11 @@ namespace Web.Controllers
         [HttpDelete]
         public async Task<IActionResult> Delete(int id)
         {
+            if (!await HasPermissionAsync("DELETE", 4))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
             try
             {
                 var permission = await _permissionRepository.GetByIdAsync(id);
