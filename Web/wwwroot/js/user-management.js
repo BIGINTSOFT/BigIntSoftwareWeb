@@ -67,14 +67,24 @@ function initializeUserManagement() {
                 {
                     data: null,
                     render: function(data, type, row) {
-                        return '<div class="btn-group" role="group">' +
-                            '<button class="btn btn-sm btn-outline-primary edit-user" data-id="' + row.id + '">' +
-                            '<i class="bi bi-pencil"></i>' +
-                            '</button>' +
-                            '<button class="btn btn-sm btn-outline-danger delete-user" data-id="' + row.id + '">' +
-                            '<i class="bi bi-trash"></i>' +
-                            '</button>' +
-                            '</div>';
+                        var actions = '';
+                        
+                        if (window.userPermissions && window.userPermissions.canView) {
+                            actions += '<button class="btn btn-sm btn-outline-info me-1 view-user" data-id="' + row.id + '" title="Görüntüle">';
+                            actions += '<i class="bi bi-eye"></i></button>';
+                        }
+                        
+                        if (window.userPermissions && window.userPermissions.canEdit) {
+                            actions += '<button class="btn btn-sm btn-outline-primary me-1 edit-user" data-id="' + row.id + '" title="Düzenle">';
+                            actions += '<i class="bi bi-pencil"></i></button>';
+                        }
+                        
+                        if (window.userPermissions && window.userPermissions.canDelete) {
+                            actions += '<button class="btn btn-sm btn-outline-danger me-1 delete-user" data-id="' + row.id + '" title="Sil">';
+                            actions += '<i class="bi bi-trash"></i></button>';
+                        }
+                        
+                        return actions;
                     }
                 }
             ],
@@ -89,6 +99,11 @@ function initializeUserManagement() {
 
     // Add User Button
     $('#addUserBtn').click(function() {
+        if (!window.userPermissions || !window.userPermissions.canCreate) {
+            showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
+            return;
+        }
+        
         isEditMode = false;
         $('#userModalLabel').text('Yeni Kullanıcı');
         $('#userForm')[0].reset();
@@ -102,6 +117,11 @@ function initializeUserManagement() {
 
     // Edit User Button
     $(document).on('click', '.edit-user', function() {
+        if (!window.userPermissions || !window.userPermissions.canEdit) {
+            showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
+            return;
+        }
+        
         const userId = $(this).data('id');
         isEditMode = true;
         currentUserId = userId;
@@ -133,6 +153,11 @@ function initializeUserManagement() {
 
     // Delete User Button
     $(document).on('click', '.delete-user', function() {
+        if (!window.userPermissions || !window.userPermissions.canDelete) {
+            showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
+            return;
+        }
+        
         currentUserId = $(this).data('id');
         $('#deleteModal').modal('show');
     });

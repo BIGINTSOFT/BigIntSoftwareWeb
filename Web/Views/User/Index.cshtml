@@ -1,3 +1,4 @@
+@using Web.Helpers
 @{
     ViewData["Title"] = "Kullanıcı Yönetimi";
 }
@@ -7,10 +8,13 @@
         <h1 class="h3 mb-1">Kullanıcı Yönetimi</h1>
         <p class="text-muted mb-0">Sistem kullanıcılarını yönetin</p>
     </div>
-    <button class="btn btn-primary" id="addUserBtn">
-        <i class="bi bi-person-plus me-2"></i>
-        Yeni Kullanıcı
-    </button>
+    @if (await Context.RequestServices.HasPermissionAsync(User, "CREATE", 2))
+    {
+        <button class="btn btn-primary" id="addUserBtn">
+            <i class="bi bi-person-plus me-2"></i>
+            Yeni Kullanıcı
+        </button>
+    }
 </div>
 
 <!-- DataTable -->
@@ -375,4 +379,14 @@
 @section Scripts {
     <!-- User Management JS -->
     <script src="~/js/user-management.js"></script>
+    
+    <script>
+        // Permission kontrolü için JavaScript değişkenleri
+        window.userPermissions = {
+            canCreate: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "CREATE", 2)),
+            canEdit: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "EDIT", 2)),
+            canDelete: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "DELETE", 2)),
+            canView: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "VIEW", 2))
+        };
+    </script>
 }

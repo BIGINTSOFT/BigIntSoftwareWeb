@@ -7,9 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ViewModel\**" />
+    <EmbeddedResource Remove="ViewModel\**" />
+    <None Remove="ViewModel\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Entity\" />
     <Folder Include="Dto\" />
-    <Folder Include="ViewModel\" />
   </ItemGroup>
 
 </Project>
