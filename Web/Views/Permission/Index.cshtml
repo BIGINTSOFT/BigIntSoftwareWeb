@@ -1,12 +1,16 @@
+@using Web.Helpers
 @{
     ViewData["Title"] = "Yetki Yönetimi";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0">Yetki Yönetimi</h1>
-    <button class="btn btn-primary" id="addPermissionBtn">
-        <i class="bi bi-plus-circle me-2"></i> Yeni Yetki
-    </button>
+    @if (await Context.RequestServices.HasPermissionAsync(User, "CREATE", 18))
+    {
+        <button class="btn btn-primary" id="addPermissionBtn">
+            <i class="bi bi-plus-circle me-2"></i> Yeni Yetki
+        </button>
+    }
 </div>
 
 <div class="card shadow-sm mb-4">
@@ -20,6 +24,8 @@
                     <th>Açıklama</th>
                     <th>Durum</th>
                     <th>Oluşturulma Tarihi</th>
+                    <th>Roller</th>
+                    <th>Kullanıcılar</th>
                     <th>İşlemler</th>
                 </tr>
             </thead>
@@ -87,7 +93,229 @@
     </div>
 </div>
 
+<!-- Permission Role Management Modal -->
+<div class="modal fade" id="permissionRoleModal" tabindex="-1" aria-labelledby="permissionRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-slide" style="max-width: 50%; width: 50%;">
+        <div class="modal-content modern-modal">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="permissionRoleModalLabel">
+                    <i class="bi bi-shield-check me-2"></i>
+                    Yetki Rol Yönetimi
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Yetki Bilgileri Kartı -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-body bg-light">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="avatar-circle bg-primary text-white">
+                                    <i class="bi bi-key fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-muted">Yetki Adı</h6>
+                                        <p class="mb-0 fw-bold" id="modalPermissionRoleName">-</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-muted">Yetki Kodu</h6>
+                                        <p class="mb-0 fw-bold" id="modalPermissionRoleCode">-</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-muted">Durum</h6>
+                                        <span class="badge" id="modalPermissionRoleStatus">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bilgilendirme Mesajları -->
+                <div id="permissionRoleModalAlert" class="alert alert-dismissible fade" role="alert" style="display: none;">
+                    <span id="permissionRoleModalAlertMessage"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="row">
+                    <!-- Atanmış Roller -->
+                    <div class="col-lg-6">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-shield-fill me-2"></i>
+                                    Bu Yetkiye Atanmış Roller
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div style="height: 400px; overflow-y: auto;">
+                                    <div id="assignedPermissionRolesList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Rol Ekleme -->
+                    <div class="col-lg-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-shield-plus me-2"></i>
+                                    Yeni Rol Ekle
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="p-3 border-bottom">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm" id="permissionRoleSearchInput" 
+                                               placeholder="Rol ara...">
+                                    </div>
+                                </div>
+                                <div style="height: 350px; overflow-y: auto;">
+                                    <div id="availablePermissionRolesList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Permission User Management Modal -->
+<div class="modal fade" id="permissionUserModal" tabindex="-1" aria-labelledby="permissionUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-slide" style="max-width: 50%; width: 50%;">
+        <div class="modal-content modern-modal">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="permissionUserModalLabel">
+                    <i class="bi bi-people me-2"></i>
+                    Yetki Kullanıcı Yönetimi
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Yetki Bilgileri Kartı -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-body bg-light">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="avatar-circle bg-warning text-dark">
+                                    <i class="bi bi-key fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-muted">Yetki Adı</h6>
+                                        <p class="mb-0 fw-bold" id="modalPermissionUserName">-</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-muted">Yetki Kodu</h6>
+                                        <p class="mb-0 fw-bold" id="modalPermissionUserCode">-</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-muted">Durum</h6>
+                                        <span class="badge" id="modalPermissionUserStatus">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bilgilendirme Mesajları -->
+                <div id="permissionUserModalAlert" class="alert alert-dismissible fade" role="alert" style="display: none;">
+                    <span id="permissionUserModalAlertMessage"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="row">
+                    <!-- Atanmış Kullanıcılar -->
+                    <div class="col-lg-6">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-people-fill me-2"></i>
+                                    Bu Yetkiye Atanmış Kullanıcılar
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div style="height: 400px; overflow-y: auto;">
+                                    <div id="assignedPermissionUsersList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Kullanıcı Ekleme -->
+                    <div class="col-lg-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-person-plus me-2"></i>
+                                    Yeni Kullanıcı Ekle
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="p-3 border-bottom">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm" id="permissionUserSearchInput" 
+                                               placeholder="Kullanıcı ara...">
+                                    </div>
+                                </div>
+                                <div style="height: 350px; overflow-y: auto;">
+                                    <div id="availablePermissionUsersList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <!-- Permission Management JS -->
     <script src="~/js/permission-management.js"></script>
+    
+    <script>
+        // Permission kontrolü için JavaScript değişkenleri
+        window.permissionPermissions = {
+            canCreate: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "CREATE", 18)),
+            canEdit: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "EDIT", 18)),
+            canDelete: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "DELETE", 18)),
+            canView: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "VIEW", 18))
+        };
+    </script>
 }

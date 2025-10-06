@@ -33,7 +33,7 @@ namespace Web.Controllers
         public async Task<IActionResult> Index()
         {
             // Permission Yönetimi menü ID'si: 4 (varsayılan)
-            if (!await HasPermissionAsync("VIEW", 4))
+            if (!await HasPermissionAsync("VIEW", 18))
             {
                 return Forbid();
             }
@@ -43,7 +43,7 @@ namespace Web.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPermissions()
         {
-            if (!await HasPermissionAsync("VIEW", 4))
+            if (!await HasPermissionAsync("VIEW", 18))
             {
                 return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
             }
@@ -106,7 +106,7 @@ namespace Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreatePermissionDto model)
         {
-            if (!await HasPermissionAsync("CREATE", 4))
+            if (!await HasPermissionAsync("CREATE", 18))
             {
                 return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
             }
@@ -146,7 +146,7 @@ namespace Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Update([FromBody] UpdatePermissionDto model)
         {
-            if (!await HasPermissionAsync("EDIT", 4))
+            if (!await HasPermissionAsync("EDIT", 18))
             {
                 return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
             }
@@ -193,7 +193,7 @@ namespace Web.Controllers
         [HttpDelete]
         public async Task<IActionResult> Delete(int id)
         {
-            if (!await HasPermissionAsync("DELETE", 4))
+            if (!await HasPermissionAsync("DELETE", 18))
             {
                 return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
             }
@@ -209,6 +209,280 @@ namespace Web.Controllers
                 await _permissionRepository.DeleteAsync(permission);
 
                 return Json(new { success = true, message = "Yetki başarıyla silindi" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        // Permission-Role Management
+        [HttpGet]
+        public async Task<IActionResult> GetRolePermissions(int roleId, int? menuId = null)
+        {
+            if (!await HasPermissionAsync("VIEW", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var permissions = await _permissionRepository.GetRolePermissionsAsync(roleId);
+                var permissionDtos = permissions.Select(p => new
+                {
+                    id = p.Id,
+                    name = p.Name,
+                    code = p.Code,
+                    description = p.Description,
+                    isActive = p.IsActive
+                }).ToList();
+
+                return Json(new { success = true, data = permissionDtos });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetRolesByPermission(int permissionId)
+        {
+            if (!await HasPermissionAsync("VIEW", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var roles = await _permissionRepository.GetRolesByPermissionIdAsync(permissionId);
+                var roleDtos = roles.Select(r => new
+                {
+                    id = r.Id,
+                    name = r.Name,
+                    description = r.Description,
+                    isActive = r.IsActive
+                }).ToList();
+
+                return Json(new { success = true, data = roleDtos });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAvailablePermissionsForRole(int roleId, int? menuId = null, string search = "")
+        {
+            if (!await HasPermissionAsync("VIEW", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var permissions = await _permissionRepository.GetAvailablePermissionsForRoleAsync(roleId, menuId, search);
+                var permissionDtos = permissions.Select(p => new
+                {
+                    id = p.Id,
+                    name = p.Name,
+                    code = p.Code,
+                    description = p.Description,
+                    isActive = p.IsActive
+                }).ToList();
+
+                return Json(new { success = true, data = permissionDtos });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AssignPermissionToRole(int roleId, int permissionId, int? menuId = null)
+        {
+            if (!await HasPermissionAsync("EDIT", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var result = await _permissionRepository.AssignPermissionToRoleAsync(roleId, permissionId, menuId);
+                if (result)
+                {
+                    return Json(new { success = true, message = "Yetki role başarıyla atandı" });
+                }
+                else
+                {
+                    return Json(new { error = "Yetki zaten bu role atanmış" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> RemovePermissionFromRole(int roleId, int permissionId, int? menuId = null)
+        {
+            if (!await HasPermissionAsync("EDIT", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var result = await _permissionRepository.RemovePermissionFromRoleAsync(roleId, permissionId, menuId);
+                if (result)
+                {
+                    return Json(new { success = true, message = "Yetki rolden başarıyla çıkarıldı" });
+                }
+                else
+                {
+                    return Json(new { error = "Yetki bu role atanmamış" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        // Permission-User Management
+        [HttpGet]
+        public async Task<IActionResult> GetUserPermissions(int userId, int? menuId = null)
+        {
+            if (!await HasPermissionAsync("VIEW", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var permissions = await _permissionRepository.GetUserPermissionsAsync(userId);
+                var permissionDtos = permissions.Select(p => new
+                {
+                    id = p.Id,
+                    name = p.Name,
+                    code = p.Code,
+                    description = p.Description,
+                    isActive = p.IsActive
+                }).ToList();
+
+                return Json(new { success = true, data = permissionDtos });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUsersByPermission(int permissionId)
+        {
+            if (!await HasPermissionAsync("VIEW", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var users = await _permissionRepository.GetUsersByPermissionIdAsync(permissionId);
+                var userDtos = users.Select(u => new
+                {
+                    id = u.Id,
+                    username = u.Username,
+                    firstName = u.FirstName,
+                    lastName = u.LastName,
+                    email = u.Email,
+                    isActive = u.IsActive
+                }).ToList();
+
+                return Json(new { success = true, data = userDtos });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAvailablePermissionsForUser(int userId, int? menuId = null, string search = "")
+        {
+            if (!await HasPermissionAsync("VIEW", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var permissions = await _permissionRepository.GetAvailablePermissionsForUserAsync(userId, menuId, search);
+                var permissionDtos = permissions.Select(p => new
+                {
+                    id = p.Id,
+                    name = p.Name,
+                    code = p.Code,
+                    description = p.Description,
+                    isActive = p.IsActive
+                }).ToList();
+
+                return Json(new { success = true, data = permissionDtos });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AssignPermissionToUser(int userId, int permissionId, int? menuId = null)
+        {
+            if (!await HasPermissionAsync("EDIT", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var result = await _permissionRepository.AssignPermissionToUserAsync(userId, permissionId, menuId);
+                if (result)
+                {
+                    return Json(new { success = true, message = "Yetki kullanıcıya başarıyla atandı" });
+                }
+                else
+                {
+                    return Json(new { error = "Yetki zaten bu kullanıcıya atanmış" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> RemovePermissionFromUser(int userId, int permissionId, int? menuId = null)
+        {
+            if (!await HasPermissionAsync("EDIT", 18))
+            {
+                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
+            }
+
+            try
+            {
+                var result = await _permissionRepository.RemovePermissionFromUserAsync(userId, permissionId, menuId);
+                if (result)
+                {
+                    return Json(new { success = true, message = "Yetki kullanıcıdan başarıyla çıkarıldı" });
+                }
+                else
+                {
+                    return Json(new { error = "Yetki bu kullanıcıya atanmamış" });
+                }
             }
             catch (Exception ex)
             {
