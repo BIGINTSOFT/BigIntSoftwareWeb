@@ -33,6 +33,11 @@ namespace Entities.Entity
 
         // Navigation Properties
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-        public virtual ICollection<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
+        public virtual ICollection<UserExtraPermission> UserExtraPermissions { get; set; } = new List<UserExtraPermission>();
+        
+        // Assigned by relationships
+        public virtual ICollection<UserRole> AssignedUserRoles { get; set; } = new List<UserRole>();
+        public virtual ICollection<UserExtraPermission> AssignedUserExtraPermissions { get; set; } = new List<UserExtraPermission>();
+        public virtual ICollection<RoleMenuPermission> AssignedRoleMenuPermissions { get; set; } = new List<RoleMenuPermission>();
     }
 }

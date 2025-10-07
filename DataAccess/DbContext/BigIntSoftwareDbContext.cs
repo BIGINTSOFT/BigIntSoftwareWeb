@@ -14,8 +14,8 @@ namespace DataAccess.DbContext
         public DbSet<Menu> Menus { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
-        public DbSet<RolePermission> RolePermissions { get; set; }
-        public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<RoleMenuPermission> RoleMenuPermissions { get; set; }
+        public DbSet<UserExtraPermission> UserExtraPermissions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -93,6 +93,7 @@ namespace DataAccess.DbContext
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.AssignedDate).HasDefaultValueSql("GETDATE()");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.Notes).HasMaxLength(500);
                 
                 entity.HasOne(e => e.User)
                       .WithMany(e => e.UserRoles)
@@ -102,53 +103,62 @@ namespace DataAccess.DbContext
                       .WithMany(e => e.UserRoles)
                       .HasForeignKey(e => e.RoleId)
                       .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.AssignedByUser)
+                      .WithMany(e => e.AssignedUserRoles)
+                      .HasForeignKey(e => e.AssignedBy)
+                      .OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(e => new { e.UserId, e.RoleId }).IsUnique();
             });
 
-            // RolePermission entity konfigürasyonu
-            modelBuilder.Entity<RolePermission>(entity =>
+            // RoleMenuPermission entity konfigürasyonu
+            modelBuilder.Entity<RoleMenuPermission>(entity =>
             {
-                entity.ToTable("RolePermissions", "BigIntSoftware");
+                entity.ToTable("RoleMenuPermissions", "BigIntSoftware");
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.PermissionLevel).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.AssignedDate).HasDefaultValueSql("GETDATE()");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.Notes).HasMaxLength(500);
                 
                 entity.HasOne(e => e.Role)
-                      .WithMany(e => e.RolePermissions)
+                      .WithMany(e => e.RoleMenuPermissions)
                       .HasForeignKey(e => e.RoleId)
                       .OnDelete(DeleteBehavior.Cascade);
-                entity.HasOne(e => e.Permission)
-                      .WithMany(e => e.RolePermissions)
-                      .HasForeignKey(e => e.PermissionId)
-                      .OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(e => e.Menu)
-                      .WithMany(e => e.RolePermissions)
+                      .WithMany(e => e.RoleMenuPermissions)
                       .HasForeignKey(e => e.MenuId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.AssignedByUser)
+                      .WithMany(e => e.AssignedRoleMenuPermissions)
+                      .HasForeignKey(e => e.AssignedBy)
                       .OnDelete(DeleteBehavior.Restrict);
-                entity.HasIndex(e => new { e.RoleId, e.PermissionId, e.MenuId }).IsUnique();
+                entity.HasIndex(e => new { e.RoleId, e.MenuId }).IsUnique();
             });
 
-            // UserPermission entity konfigürasyonu
-            modelBuilder.Entity<UserPermission>(entity =>
+            // UserExtraPermission entity konfigürasyonu
+            modelBuilder.Entity<UserExtraPermission>(entity =>
             {
-                entity.ToTable("UserPermissions", "BigIntSoftware");
+                entity.ToTable("UserExtraPermissions", "BigIntSoftware");
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.PermissionLevel).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Reason).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.AssignedDate).HasDefaultValueSql("GETDATE()");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.Notes).HasMaxLength(500);
                 
                 entity.HasOne(e => e.User)
-                      .WithMany(e => e.UserPermissions)
+                      .WithMany(e => e.UserExtraPermissions)
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
-                entity.HasOne(e => e.Permission)
-                      .WithMany(e => e.UserPermissions)
-                      .HasForeignKey(e => e.PermissionId)
-                      .OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(e => e.Menu)
-                      .WithMany(e => e.UserPermissions)
+                      .WithMany(e => e.UserExtraPermissions)
                       .HasForeignKey(e => e.MenuId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.AssignedByUser)
+                      .WithMany(e => e.AssignedUserExtraPermissions)
+                      .HasForeignKey(e => e.AssignedBy)
                       .OnDelete(DeleteBehavior.Restrict);
-                entity.HasIndex(e => new { e.UserId, e.PermissionId, e.MenuId }).IsUnique();
+                entity.HasIndex(e => new { e.UserId, e.MenuId }).IsUnique();
             });
         }
     }

@@ -4,25 +4,28 @@ namespace Bussiness.Repository.Abstract
 {
     public interface IRoleRepository : IGenericRepository<Role>
     {
-        Task<Role?> GetByNameAsync(string name);
-        Task<IEnumerable<Role>> GetActiveRolesAsync();
-        Task<IEnumerable<Role>> GetUserRolesAsync(int userId);
-        Task<bool> AssignRoleToUserAsync(int userId, int roleId);
-        Task<bool> RemoveRoleFromUserAsync(int userId, int roleId);
+        // Rol-Menü-Yetki İşlemleri
+        Task<bool> AssignMenuPermissionToRoleAsync(int roleId, int menuId, string permissionLevel, int assignedBy, string? notes = null);
+        Task<bool> RemoveMenuPermissionFromRoleAsync(int roleId, int menuId);
+        Task<bool> RemoveMenuPermissionFromRoleByIdAsync(int roleId, int permissionId);
+        Task<bool> UpdateRoleMenuPermissionAsync(int roleId, int menuId, string newPermissionLevel, int assignedBy, string? notes = null);
         
-        // Menu Permission Management
-        Task<IEnumerable<Role>> GetRolesByMenuIdAsync(int menuId);
-        Task<IEnumerable<Role>> GetAvailableRolesForMenuPermissionAsync(int menuId, string search = "");
-        Task<bool> AssignRoleToMenuAsync(int roleId, int menuId);
-        Task<bool> RemoveRoleFromMenuAsync(int roleId, int menuId);
+        // Rol Yetkilerini Getirme
+        Task<List<RoleMenuPermission>> GetRoleMenuPermissionsAsync(int roleId);
+        Task<List<RoleMenuPermission>> GetRoleMenuPermissionsByMenuAsync(int menuId);
+        Task<RoleMenuPermission?> GetRoleMenuPermissionAsync(int roleId, int menuId);
         
-        // User Role Management
-        Task<IEnumerable<Role>> GetAvailableRolesForUserAsync(int userId, string search = "");
+        // Rol Kullanıcıları
+        Task<List<User>> GetRoleUsersAsync(int roleId);
+        Task<int> GetRoleUserCountAsync(int roleId);
         
-        // Role Menu Management
-        Task<IEnumerable<Menu>> GetRoleMenusAsync(int roleId);
-        Task<IEnumerable<Menu>> GetAvailableMenusForRoleAsync(int roleId, string search = "");
-        Task<bool> AssignMenuToRoleAsync(int roleId, int menuId);
-        Task<bool> RemoveMenuFromRoleAsync(int roleId, int menuId);
+        // Rol Arama ve Filtreleme
+        Task<List<Role>> GetAvailableRolesForUserAsync(int userId, string? search = null);
+        Task<List<Role>> GetAvailableRolesForMenuAsync(int menuId, string? search = null);
+        Task<List<Menu>> GetAvailableMenusForRolePermissionAsync(int roleId, string? search = null);
+        
+        // Rol Bilgileri
+        Task<Role?> GetRoleWithMenuPermissionsAsync(int roleId);
+        Task<List<Role>> GetActiveRolesAsync();
     }
 }

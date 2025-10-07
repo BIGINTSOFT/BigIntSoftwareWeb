@@ -8,12 +8,12 @@ namespace Web.ViewComponents
     public class DynamicMenuViewComponent : ViewComponent
     {
         private readonly IMenuRepository _menuRepository;
-        private readonly IPermissionRepository _permissionRepository;
+        private readonly IUserRepository _userRepository;
 
-        public DynamicMenuViewComponent(IMenuRepository menuRepository, IPermissionRepository permissionRepository)
+        public DynamicMenuViewComponent(IMenuRepository menuRepository, IUserRepository userRepository)
         {
             _menuRepository = menuRepository;
-            _permissionRepository = permissionRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<IViewComponentResult> InvokeAsync()
@@ -32,7 +32,7 @@ namespace Web.ViewComponents
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
                 return new List<Menu>();
 
-            return await _menuRepository.GetUserMenusAsync(userId);
+            return await _menuRepository.GetUserAccessibleMenusAsync(userId);
         }
 
         private IEnumerable<Menu> BuildMenuHierarchy(IEnumerable<Menu> menus)

@@ -25,17 +25,17 @@ function initializeUserManagement() {
                 }
             },
             columns: [
-                { data: 'id' },
-                { data: 'username' },
+                { data: 'Id' },
+                { data: 'Username' },
                 { 
                     data: null,
                     render: function(data, type, row) {
-                        return row.firstName + ' ' + row.lastName;
+                        return row.FirstName + ' ' + row.LastName;
                     }
                 },
-                { data: 'email' },
+                { data: 'Email' },
                 { 
-                    data: 'isActive',
+                    data: 'IsActive',
                     render: function(data, type, row) {
                         if (data) {
                             return '<span class="badge bg-success">Aktif</span>';
@@ -48,39 +48,37 @@ function initializeUserManagement() {
                     data: null,
                     orderable: false,
                     render: function(data, type, row) {
-                        return '<button class="btn btn-sm btn-outline-info view-roles" data-id="' + row.id + '" title="Rolleri Görüntüle">' +
-                            '<i class="bi bi-shield-check"></i>' +
-                            '</button>';
+                        return '<button class="btn btn-sm btn-outline-primary" onclick="openUserRoleModal(' + row.Id + ', \'' + row.Username + '\', \'' + row.FirstName + ' ' + row.LastName + '\', \'' + row.Email + '\', ' + row.IsActive + ')">' +
+                               '<i class="bi bi-shield-check me-1"></i>Roller</button>';
                     }
                 },
                 {
                     data: null,
                     orderable: false,
                     render: function(data, type, row) {
-                        return '<button class="btn btn-sm btn-outline-warning view-menus" data-id="' + row.id + '" title="Menü Yetkilerini Görüntüle">' +
-                            '<i class="bi bi-list-ul"></i>' +
-                            '</button>';
+                        return '<button class="btn btn-sm btn-outline-warning" onclick="openUserExtraPermissionsModal(' + row.Id + ', \'' + row.Username + '\', \'' + row.FirstName + ' ' + row.LastName + '\', \'' + row.Email + '\', ' + row.IsActive + ')">' +
+                               '<i class="bi bi-gear me-1"></i>Özel Yetkiler</button>';
                     }
                 },
-                { data: 'createdDate' },
-                { data: 'lastLoginDate' },
+                { data: 'CreatedDate' },
+                { data: 'LastLoginDate' },
                 {
                     data: null,
                     render: function(data, type, row) {
                         var actions = '';
                         
                         if (window.userPermissions && window.userPermissions.canView) {
-                            actions += '<button class="btn btn-sm btn-outline-info me-1 view-user" data-id="' + row.id + '" title="Görüntüle">';
+                            actions += '<button class="btn btn-sm btn-outline-info me-1 view-user" data-id="' + row.Id + '" title="Görüntüle">';
                             actions += '<i class="bi bi-eye"></i></button>';
                         }
                         
                         if (window.userPermissions && window.userPermissions.canEdit) {
-                            actions += '<button class="btn btn-sm btn-outline-primary me-1 edit-user" data-id="' + row.id + '" title="Düzenle">';
+                            actions += '<button class="btn btn-sm btn-outline-primary me-1 edit-user" data-id="' + row.Id + '" title="Düzenle">';
                             actions += '<i class="bi bi-pencil"></i></button>';
                         }
                         
                         if (window.userPermissions && window.userPermissions.canDelete) {
-                            actions += '<button class="btn btn-sm btn-outline-danger me-1 delete-user" data-id="' + row.id + '" title="Sil">';
+                            actions += '<button class="btn btn-sm btn-outline-danger me-1 delete-user" data-id="' + row.Id + '" title="Sil">';
                             actions += '<i class="bi bi-trash"></i></button>';
                         }
                         
@@ -130,12 +128,12 @@ function initializeUserManagement() {
             .done(function(response) {
                 if (response.data) {
                     $('#userModalLabel').text('Kullanıcı Düzenle');
-                    $('#userId').val(response.data.id);
-                    $('#username').val(response.data.username);
-                    $('#firstName').val(response.data.firstName);
-                    $('#lastName').val(response.data.lastName);
-                    $('#email').val(response.data.email);
-                    $('#isActive').prop('checked', response.data.isActive);
+                    $('#userId').val(response.data.Id);
+                    $('#username').val(response.data.Username);
+                    $('#firstName').val(response.data.FirstName);
+                    $('#lastName').val(response.data.LastName);
+                    $('#email').val(response.data.Email);
+                    $('#isActive').prop('checked', response.data.IsActive);
                     $('#password').val('');
                     $('#passwordHelp').hide();
                     $('#password').removeAttr('required');
@@ -463,13 +461,13 @@ function initializeUserManagement() {
     }
 
     function displayUserInfo(user) {
-        $('#modalUserName').text(user.username || '-');
+        $('#modalUserName').text(user.Username || '-');
         // firstName ve lastName'i birleştir ve trim yap
-        var fullName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
+        var fullName = ((user.FirstName || '') + ' ' + (user.LastName || '')).trim();
         $('#modalUserFullName').text(fullName || '-');
-        $('#modalUserEmail').text(user.email || '-');
+        $('#modalUserEmail').text(user.Email || '-');
         
-        const statusBadge = user.isActive ? 
+        const statusBadge = user.IsActive ? 
             '<span class="badge bg-success">Aktif</span>' : 
             '<span class="badge bg-danger">Pasif</span>';
         $('#modalUserStatus').html(statusBadge);
@@ -552,13 +550,13 @@ function initializeUserManagement() {
                         <div class="role-info">
                             <div class="d-flex align-items-center mb-1">
                                 <i class="bi bi-shield-check text-primary me-2"></i>
-                                <span class="fw-bold">${role.name}</span>
+                                <span class="fw-bold">${role.Name}</span>
                                 <span class="role-badge bg-primary text-white ms-2">Aktif</span>
                             </div>
-                            <div class="role-description">${role.description || 'Açıklama bulunmuyor'}</div>
+                            <div class="role-description">${role.Description || 'Açıklama bulunmuyor'}</div>
                         </div>
                         <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-danger remove-user-role" data-role-id="${role.id}" title="Rolü Kaldır">
+                            <button class="btn btn-sm btn-outline-danger remove-user-role" data-role-id="${role.Id}" title="Rolü Kaldır">
                                 <i class="bi bi-x"></i>
                             </button>
                         </div>
@@ -585,12 +583,12 @@ function initializeUserManagement() {
                         <div class="role-info">
                             <div class="d-flex align-items-center mb-1">
                                 <i class="bi bi-shield text-success me-2"></i>
-                                <span class="fw-bold">${role.name}</span>
+                                <span class="fw-bold">${role.Name}</span>
                             </div>
-                            <div class="role-description">${role.description || 'Açıklama bulunmuyor'}</div>
+                            <div class="role-description">${role.Description || 'Açıklama bulunmuyor'}</div>
                         </div>
                         <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-success add-user-role" data-role-id="${role.id}" title="Role Ekle">
+                            <button class="btn btn-sm btn-outline-success add-user-role" data-role-id="${role.Id}" title="Role Ekle">
                                 <i class="bi bi-plus"></i>
                             </button>
                         </div>
@@ -601,37 +599,37 @@ function initializeUserManagement() {
         $('#availableUserRolesList').html(html);
     }
 
-    // User Menu Permissions Management
-    $(document).on('click', '.view-menus', function() {
+    // User Extra Permissions Management (Yeni ERP Yapısı)
+    $(document).on('click', '.view-extra-permissions', function() {
         var userId = $(this).data('id');
-        openUserMenuPermissionsModal(userId);
+        openUserExtraPermissionsModal(userId);
     });
 
-    function openUserMenuPermissionsModal(userId) {
-        $('#userMenuPermissionsModal').modal('show');
+    function openUserExtraPermissionsModal(userId) {
+        $('#userExtraPermissionsModal').modal('show');
         
         // Kullanıcı bilgilerini yükle
         loadUserInfo(userId);
         
-        // Menü yetkilerini yükle
-        loadUserMenus(userId);
-        loadAvailableMenusForUser(userId);
+        // Özel yetkileri yükle
+        loadUserExtraPermissions(userId);
+        loadAvailableMenusForExtraPermission(userId);
         
         // Store current user ID
-        $('#userMenuPermissionsModal').data('user-id', userId);
+        $('#userExtraPermissionsModal').data('user-id', userId);
     }
 
-    function displayMenuUserInfo(user) {
-        $('#modalMenuUserName').text(user.username || '-');
+    function displayExtraPermissionUserInfo(user) {
+        $('#modalExtraPermissionUserName').text(user.Username || '-');
         // firstName ve lastName'i birleştir
-        var fullName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
-        $('#modalMenuUserFullName').text(fullName || '-');
-        $('#modalMenuUserEmail').text(user.email || '-');
+        var fullName = ((user.FirstName || '') + ' ' + (user.LastName || '')).trim();
+        $('#modalExtraPermissionUserFullName').text(fullName || '-');
+        $('#modalExtraPermissionUserEmail').text(user.Email || '-');
         
-        var statusBadge = user.isActive ? 
+        var statusBadge = user.IsActive ? 
             '<span class="badge bg-success">Aktif</span>' : 
             '<span class="badge bg-danger">Pasif</span>';
-        $('#modalMenuUserStatus').html(statusBadge);
+        $('#modalExtraPermissionUserStatus').html(statusBadge);
     }
 
     function showMenuModalAlert(message, type) {
@@ -649,32 +647,32 @@ function initializeUserManagement() {
         }, 3000);
     }
 
-    function loadUserMenus(userId) {
+    function loadUserExtraPermissions(userId) {
         $.ajax({
-            url: '/User/GetUserMenus',
+            url: '/User/GetUserExtraPermissions',
             type: 'GET',
             data: { userId: userId },
             success: function(response) {
                 if (response.success) {
-                    displayAssignedUserMenus(response.data);
+                    displayAssignedUserExtraPermissions(response.data);
                 } else {
                     showAlert(response.error, 'error');
                 }
             },
             error: function() {
-                showAlert('Menü yetkileri yüklenirken hata oluştu!', 'error');
+                showAlert('Özel yetkiler yüklenirken hata oluştu!', 'error');
             }
         });
     }
 
-    function loadAvailableMenusForUser(userId, search = '') {
+    function loadAvailableMenusForExtraPermission(userId, search = '') {
         $.ajax({
-            url: '/User/GetAvailableMenusForUser',
+            url: '/User/GetAvailableMenusForExtraPermission',
             type: 'GET',
             data: { userId: userId, search: search },
             success: function(response) {
                 if (response.success) {
-                    displayAvailableUserMenus(response.data);
+                    displayAvailableMenusForExtraPermission(response.data);
                 } else {
                     showAlert(response.error, 'error');
                 }
@@ -685,70 +683,76 @@ function initializeUserManagement() {
         });
     }
 
-    function displayAssignedUserMenus(menus) {
+    function displayAssignedUserExtraPermissions(permissions) {
         var html = '';
-        if (menus.length === 0) {
+        if (permissions.length === 0) {
             html = `
                 <div class="empty-state">
-                    <i class="bi bi-list-ul"></i>
-                    <p class="mb-0">Kullanıcının menü yetkisi bulunmuyor</p>
+                    <i class="bi bi-gear"></i>
+                    <p class="mb-0">Kullanıcının özel yetkisi bulunmuyor</p>
                 </div>
             `;
         } else {
-            menus.forEach(function(menu) {
-                var sourceBadge = menu.source === 'Role' ? 
-                    '<span class="badge bg-primary me-2">Rol</span>' : 
-                    '<span class="badge bg-success me-2">Direkt</span>';
-                
-                var removeButton = menu.source === 'Direct' ? 
-                    `<button class="btn btn-sm btn-outline-danger remove-user-menu" data-menu-id="${menu.id}" title="Yetkiyi Kaldır">
-                        <i class="bi bi-x"></i>
-                    </button>` : 
-                    `<span class="text-muted small">Rol bazlı yetki</span>`;
-                
-                html += `
-                    <div class="role-item d-flex justify-content-between align-items-center p-3 bg-light border rounded mb-2">
-                        <div class="role-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="${menu.icon || 'bi bi-circle'} text-primary me-2"></i>
-                                <span class="fw-bold">${menu.name}</span>
-                                ${sourceBadge}
-                            </div>
-                            <div class="role-description">${menu.controller}/${menu.action || ''}</div>
+        permissions.forEach(function(permission) {
+            var permissionBadge = getPermissionBadgeClass(permission.PermissionLevel);
+            
+            html += `
+                <div class="role-item d-flex justify-content-between align-items-center p-3 bg-light border rounded mb-2">
+                    <div class="role-info">
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="${permission.MenuIcon || 'bi bi-circle'} text-primary me-2"></i>
+                            <span class="fw-bold">${permission.MenuName}</span>
+                            <span class="badge ${permissionBadge} ms-2">${permission.PermissionLevel}</span>
                         </div>
-                        <div class="role-actions">
-                            ${removeButton}
-                        </div>
+                        <div class="role-description">${permission.MenuController}/${permission.MenuAction || ''}</div>
+                        <div class="role-description text-muted small">Sebep: ${permission.Reason}</div>
                     </div>
-                `;
-            });
+                    <div class="role-actions">
+                        <button class="btn btn-sm btn-outline-danger remove-user-extra-permission" data-permission-id="${permission.Id}" title="Yetkiyi Kaldır">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
         }
-        $('#assignedUserMenusList').html(html);
+        $('#assignedUserExtraPermissionsList').html(html);
     }
 
-    function displayAvailableUserMenus(menus) {
+    function displayAvailableMenusForExtraPermission(menus) {
         var html = '';
         if (menus.length === 0) {
             html = '<div class="text-muted text-center py-3">Eklenecek menü bulunamadı</div>';
         } else {
-            menus.forEach(function(menu) {
-                html += `
-                    <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
-                        <div>
-                            <div class="fw-bold">
-                                <i class="${menu.icon || 'bi bi-circle'} me-2"></i>
-                                ${menu.name}
-                            </div>
-                            <small class="text-muted">${menu.controller}/${menu.action || ''}</small>
+        menus.forEach(function(menu) {
+            html += `
+                <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                    <div>
+                        <div class="fw-bold">
+                            <i class="${menu.Icon || 'bi bi-circle'} me-2"></i>
+                            ${menu.Name}
                         </div>
-                        <button class="btn btn-sm btn-outline-success add-user-menu" data-menu-id="${menu.id}">
-                            <i class="bi bi-plus"></i>
+                        <small class="text-muted">${menu.Controller}/${menu.Action || ''}</small>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-success add-user-extra-permission" data-menu-id="${menu.Id}" data-permission-level="VIEW">
+                            <i class="bi bi-eye"></i> VIEW
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary add-user-extra-permission" data-menu-id="${menu.Id}" data-permission-level="CREATE">
+                            <i class="bi bi-plus"></i> CREATE
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning add-user-extra-permission" data-menu-id="${menu.Id}" data-permission-level="EDIT">
+                            <i class="bi bi-pencil"></i> EDIT
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger add-user-extra-permission" data-menu-id="${menu.Id}" data-permission-level="DELETE">
+                            <i class="bi bi-trash"></i> DELETE
                         </button>
                     </div>
-                `;
-            });
+                </div>
+            `;
+        });
         }
-        $('#availableUserMenusList').html(html);
+        $('#availableMenusForExtraPermissionList').html(html);
     }
 
     // Role Actions
@@ -814,30 +818,43 @@ function initializeUserManagement() {
         });
     });
 
-    // Menu Actions
-    $(document).on('click', '.add-user-menu', function() {
+    // Extra Permission Actions (Yeni ERP Yapısı)
+    $(document).on('click', '.add-user-extra-permission', function() {
         var menuId = $(this).data('menu-id');
-        var userId = $('#userMenuPermissionsModal').data('user-id');
+        var permissionLevel = $(this).data('permission-level');
+        var userId = $('#userExtraPermissionsModal').data('user-id');
         var $button = $(this);
+        
+        // Sebep sor
+        var reason = prompt('Bu özel yetkiyi verme sebebinizi yazın:');
+        if (!reason || reason.trim() === '') {
+            showAlert('Sebep belirtilmelidir!', 'error');
+            return;
+        }
         
         // Show loading state
         $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
         
         $.ajax({
-            url: '/User/AssignMenuToUser',
+            url: '/User/AssignExtraPermissionToUser',
             type: 'POST',
-            data: { userId: userId, menuId: menuId },
+            data: { 
+                userId: userId, 
+                menuId: menuId, 
+                permissionLevel: permissionLevel,
+                reason: reason.trim()
+            },
             success: function(response) {
                 if (response.success) {
-                    showMenuModalAlert(response.message, 'success');
-                    loadUserMenus(userId);
-                    loadAvailableMenusForUser(userId);
+                    showAlert(response.message, 'success');
+                    loadUserExtraPermissions(userId);
+                    loadAvailableMenusForExtraPermission(userId);
                 } else {
-                    showMenuModalAlert(response.error, 'error');
+                    showAlert(response.error, 'error');
                 }
             },
             error: function() {
-                showMenuModalAlert('Menü yetkisi verilirken hata oluştu!', 'error');
+                showAlert('Özel yetki verilirken hata oluştu!', 'error');
             },
             complete: function() {
                 // Reset button state
@@ -846,29 +863,29 @@ function initializeUserManagement() {
         });
     });
 
-    $(document).on('click', '.remove-user-menu', function() {
-        var menuId = $(this).data('menu-id');
-        var userId = $('#userMenuPermissionsModal').data('user-id');
+    $(document).on('click', '.remove-user-extra-permission', function() {
+        var permissionId = $(this).data('permission-id');
+        var userId = $('#userExtraPermissionsModal').data('user-id');
         var $button = $(this);
         
         // Show loading state
         $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
         
         $.ajax({
-            url: '/User/RemoveMenuFromUser',
+            url: '/User/RemoveExtraPermissionFromUser',
             type: 'DELETE',
-            data: { userId: userId, menuId: menuId },
+            data: { userId: userId, permissionId: permissionId },
             success: function(response) {
                 if (response.success) {
-                    showMenuModalAlert(response.message, 'success');
-                    loadUserMenus(userId);
-                    loadAvailableMenusForUser(userId);
+                    showAlert(response.message, 'success');
+                    loadUserExtraPermissions(userId);
+                    loadAvailableMenusForExtraPermission(userId);
                 } else {
-                    showMenuModalAlert(response.error, 'error');
+                    showAlert(response.error, 'error');
                 }
             },
             error: function() {
-                showMenuModalAlert('Menü yetkisi kaldırılırken hata oluştu!', 'error');
+                showAlert('Özel yetki kaldırılırken hata oluştu!', 'error');
             },
             complete: function() {
                 // Reset button state
@@ -884,12 +901,218 @@ function initializeUserManagement() {
         loadAvailableRolesForUser(userId, search);
     });
 
-    $('#menuSearchInput').on('input', function() {
+    $('#extraPermissionSearchInput').on('input', function() {
         var search = $(this).val();
-        var userId = $('#userMenuPermissionsModal').data('user-id');
-        loadAvailableMenusForUser(userId, search);
+        var userId = $('#userExtraPermissionsModal').data('user-id');
+        loadAvailableMenusForExtraPermission(userId, search);
     });
 
     // Initialize
     initDataTable();
+}
+
+// Yardımcı Fonksiyonlar
+function getPermissionBadgeClass(permissionLevel) {
+    switch(permissionLevel) {
+        case 'VIEW': return 'bg-primary';
+        case 'CREATE': return 'bg-success';
+        case 'EDIT': return 'bg-warning text-dark';
+        case 'UPDATE': return 'bg-warning text-dark';
+        case 'DELETE': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+
+// Global Functions for User Management
+function openUserRoleModal(userId, username, fullName, email, isActive) {
+    $('#userRoleModal').data('user-id', userId);
+    $('#modalUserName').text(username);
+    $('#modalUserFullName').text(fullName);
+    $('#modalUserEmail').text(email);
+    $('#modalUserStatus').text(isActive ? 'Aktif' : 'Pasif').removeClass('bg-success bg-danger').addClass(isActive ? 'bg-success' : 'bg-danger');
+    
+    loadUserRoles(userId);
+    loadAvailableRolesForUser(userId);
+    $('#userRoleModal').modal('show');
+}
+
+function openUserExtraPermissionsModal(userId, username, fullName, email, isActive) {
+    $('#userExtraPermissionsModal').data('user-id', userId);
+    $('#modalExtraPermissionUserName').text(username);
+    $('#modalExtraPermissionUserFullName').text(fullName);
+    $('#modalExtraPermissionUserEmail').text(email);
+    $('#modalExtraPermissionUserStatus').text(isActive ? 'Aktif' : 'Pasif').removeClass('bg-success bg-danger').addClass(isActive ? 'bg-success' : 'bg-danger');
+    
+    loadUserExtraPermissions(userId);
+    loadAvailableMenusForExtraPermission(userId);
+    $('#userExtraPermissionsModal').modal('show');
+}
+
+function openUserSystemPermissionsModal(userId, username, fullName, email, isActive) {
+    $('#userSystemPermissionsModal').data('user-id', userId);
+    $('#modalPermissionUserName').text(username);
+    $('#modalPermissionUserFullName').text(fullName);
+    $('#modalPermissionUserEmail').text(email);
+    $('#modalPermissionUserStatus').text(isActive ? 'Aktif' : 'Pasif').removeClass('bg-success bg-danger').addClass(isActive ? 'bg-success' : 'bg-danger');
+    
+    loadUserPermissions(userId);
+    loadAvailablePermissionsForUser(userId);
+    $('#userSystemPermissionsModal').modal('show');
+}
+
+// Load User Permissions
+function loadUserPermissions(userId) {
+    $.ajax({
+        url: '/User/GetUserPermissions',
+        type: 'GET',
+        data: { userId: userId },
+        success: function(response) {
+            if (response.success) {
+                var html = '';
+                if (response.data.length > 0) {
+                    response.data.forEach(function(permission) {
+                        html += '<div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">';
+                        html += '<div>';
+                        html += '<h6 class="mb-1">' + permission.name + '</h6>';
+                        html += '<small class="text-muted">' + permission.code + '</small>';
+                        if (permission.description) {
+                            html += '<br><small class="text-muted">' + permission.description + '</small>';
+                        }
+                        html += '</div>';
+                        html += '<button class="btn btn-sm btn-outline-danger remove-user-permission" data-permission-id="' + permission.id + '">';
+                        html += '<i class="bi bi-x"></i>';
+                        html += '</button>';
+                        html += '</div>';
+                    });
+                } else {
+                    html = '<div class="text-center text-muted py-4">';
+                    html += '<i class="bi bi-gear fs-1"></i>';
+                    html += '<p class="mt-2">Henüz sistem yetkisi atanmamış</p>';
+                    html += '</div>';
+                }
+                $('#assignedUserPermissionsList').html(html);
+            }
+        },
+        error: function() {
+            $('#assignedUserPermissionsList').html('<div class="text-center text-danger py-4">Yetkiler yüklenirken hata oluştu!</div>');
+        }
+    });
+}
+
+// Load Available Permissions for User
+function loadAvailablePermissionsForUser(userId, search = '') {
+    $.ajax({
+        url: '/User/GetAvailablePermissionsForUser',
+        type: 'GET',
+        data: { userId: userId, search: search },
+        success: function(response) {
+            if (response.success) {
+                var html = '';
+                if (response.data.length > 0) {
+                    response.data.forEach(function(permission) {
+                        html += '<div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">';
+                        html += '<div>';
+                        html += '<h6 class="mb-1">' + permission.name + '</h6>';
+                        html += '<small class="text-muted">' + permission.code + '</small>';
+                        if (permission.description) {
+                            html += '<br><small class="text-muted">' + permission.description + '</small>';
+                        }
+                        html += '</div>';
+                        html += '<button class="btn btn-sm btn-outline-success add-user-permission" data-permission-id="' + permission.id + '">';
+                        html += '<i class="bi bi-plus"></i>';
+                        html += '</button>';
+                        html += '</div>';
+                    });
+                } else {
+                    html = '<div class="text-center text-muted py-4">';
+                    html += '<i class="bi bi-search fs-1"></i>';
+                    html += '<p class="mt-2">Arama kriterlerine uygun yetki bulunamadı</p>';
+                    html += '</div>';
+                }
+                $('#availableUserPermissionsList').html(html);
+            }
+        },
+        error: function() {
+            $('#availableUserPermissionsList').html('<div class="text-center text-danger py-4">Yetkiler yüklenirken hata oluştu!</div>');
+        }
+    });
+}
+
+// Permission Actions
+$(document).on('click', '.add-user-permission', function() {
+    var permissionId = $(this).data('permission-id');
+    var userId = $('#userSystemPermissionsModal').data('user-id');
+    var $button = $(this);
+    
+    // Show loading state
+    $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
+    
+    $.ajax({
+        url: '/User/AssignPermissionToUser',
+        type: 'POST',
+        data: { userId: userId, permissionId: permissionId },
+        success: function(response) {
+            if (response.success) {
+                showPermissionModalAlert(response.message, 'success');
+                loadUserPermissions(userId);
+                loadAvailablePermissionsForUser(userId);
+            } else {
+                showPermissionModalAlert(response.error, 'error');
+            }
+        },
+        error: function() {
+            showPermissionModalAlert('Sistem yetkisi verilirken hata oluştu!', 'error');
+        },
+        complete: function() {
+            // Reset button state
+            $button.html('<i class="bi bi-plus"></i>').prop('disabled', false);
+        }
+    });
+});
+
+$(document).on('click', '.remove-user-permission', function() {
+    var permissionId = $(this).data('permission-id');
+    var userId = $('#userSystemPermissionsModal').data('user-id');
+    var $button = $(this);
+    
+    // Show loading state
+    $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
+    
+    $.ajax({
+        url: '/User/RemovePermissionFromUser',
+        type: 'DELETE',
+        data: { userId: userId, permissionId: permissionId },
+        success: function(response) {
+            if (response.success) {
+                showPermissionModalAlert(response.message, 'success');
+                loadUserPermissions(userId);
+                loadAvailablePermissionsForUser(userId);
+            } else {
+                showPermissionModalAlert(response.error, 'error');
+            }
+        },
+        error: function() {
+            showPermissionModalAlert('Sistem yetkisi kaldırılırken hata oluştu!', 'error');
+        },
+        complete: function() {
+            // Reset button state
+            $button.html('<i class="bi bi-x"></i>').prop('disabled', false);
+        }
+    });
+});
+
+// Show Permission Modal Alert
+function showPermissionModalAlert(message, type) {
+    var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    var alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+                   '<span>' + message + '</span>' +
+                   '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                   '</div>';
+    
+    $('#permissionModalAlert').html(alertHtml).show();
+    
+    // Auto hide after 3 seconds
+    setTimeout(function() {
+        $('#permissionModalAlert').fadeOut();
+    }, 3000);
 }

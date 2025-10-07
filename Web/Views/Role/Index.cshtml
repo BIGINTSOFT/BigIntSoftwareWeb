@@ -4,9 +4,12 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0">Rol Yönetimi</h1>
+    @if (await Context.RequestServices.HasPermissionAsync(User, "CREATE"))
+    {
     <button class="btn btn-primary" id="addRoleBtn">
         <i class="bi bi-plus-circle me-2"></i> Yeni Rol
     </button>
+    }
 </div>
 
 <div class="card shadow-sm mb-4">
@@ -192,22 +195,22 @@
                         </div>
                     </div>
 
-                    <!-- Role Menus Tab -->
+                    <!-- Role Menu Permissions Tab (Yeni ERP Yapısı) -->
                     <div class="tab-pane fade" id="role-menus" role="tabpanel">
                         <div class="mt-3">
                             <div class="row">
-                                <!-- Atanmış Menüler -->
+                                <!-- Atanmış Menü Yetkileri -->
                                 <div class="col-lg-6">
                                     <div class="card border-warning">
                                         <div class="card-header bg-warning text-dark">
                                             <h6 class="mb-0">
                                                 <i class="bi bi-list-check me-2"></i>
-                                                Bu Role Atanmış Menüler
+                                                Bu Role Atanmış Menü Yetkileri
                                             </h6>
                                         </div>
                                         <div class="card-body p-0">
                                             <div style="height: 400px; overflow-y: auto;">
-                                                <div id="assignedRoleMenusList" class="p-3">
+                                                <div id="assignedRoleMenuPermissionsList" class="p-3">
                                                     <!-- AJAX ile doldurulacak -->
                                                 </div>
                                             </div>
@@ -235,7 +238,7 @@
                                                 </div>
                                             </div>
                                             <div style="height: 350px; overflow-y: auto;">
-                                                <div id="availableRoleMenusList" class="p-3">
+                                                <div id="availableMenusForRolePermissionList" class="p-3">
                                                     <!-- AJAX ile doldurulacak -->
                                                 </div>
                                             </div>
@@ -245,6 +248,7 @@
                             </div>
                         </div>
                     </div>
+                    
                 </div>
             </div>
             <div class="modal-footer bg-light">
@@ -261,4 +265,13 @@
 @section Scripts {
     <!-- Role Management JS -->
     <script src="~/js/role-management.js"></script>
+    <script>
+        // View permission flags for Role page via dynamic menu resolution
+        window.rolePermissions = {
+            canCreate: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "CREATE")),
+            canEdit: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "EDIT")),
+            canDelete: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "DELETE")),
+            canView: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "VIEW"))
+        };
+    </script>
 }

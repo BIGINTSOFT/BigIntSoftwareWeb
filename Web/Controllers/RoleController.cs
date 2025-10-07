@@ -1,9 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Bussiness.Repository.Abstract;
 using Entities.Entity;
-using Entities.Dto;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Controllers
 {
@@ -21,10 +20,21 @@ namespace Web.Controllers
             _menuRepository = menuRepository;
         }
 
-        public IActionResult Index()
+        #region Ana Sayfalar
+
+        public async Task<IActionResult> Index()
         {
-            return View();
+            // Geçici olarak yetki kontrolünü kaldırdık
+            // if (!await HasPermissionAsync("VIEW"))
+            //     return Forbid();
+
+            var roles = await _roleRepository.GetAllAsync();
+            return View(roles);
         }
+
+        #endregion
+
+        #region AJAX API Methods
 
         [HttpGet]
         public async Task<IActionResult> GetRoles()
@@ -32,20 +42,11 @@ namespace Web.Controllers
             try
             {
                 var roles = await _roleRepository.GetAllAsync();
-                var roleList = roles.Select(r => new
-                {
-                    id = r.Id,
-                    name = r.Name,
-                    description = r.Description,
-                    isActive = r.IsActive,
-                    createdDate = r.CreatedDate
-                }).ToList();
-                
-                return Json(new { data = roleList });
+                return Json(new { success = true, data = roles });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, error = ex.Message });
             }
         }
 
@@ -56,20 +57,9 @@ namespace Web.Controllers
             {
                 var role = await _roleRepository.GetByIdAsync(id);
                 if (role == null)
-                {
                     return Json(new { success = false, error = "Rol bulunamadı" });
-                }
-                
-                var roleData = new
-                {
-                    id = role.Id,
-                    name = role.Name,
-                    description = role.Description,
-                    isActive = role.IsActive,
-                    createdDate = role.CreatedDate
-                };
-                
-                return Json(new { success = true, data = roleData });
+
+                return Json(new { success = true, data = role });
             }
             catch (Exception ex)
             {
@@ -77,298 +67,294 @@ namespace Web.Controllers
             }
         }
 
+        #endregion
+
+
+        #region Rol CRUD İşlemleri
+
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateRoleDto model)
+        public async Task<IActionResult> Create([FromBody] Role role)
         {
-            if (!ModelState.IsValid)
-            {
-                return Json(new { error = "Geçersiz veri", errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
-            }
+            if (!await HasPermissionAsync("CREATE"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
 
             try
             {
-                var existingRole = await _roleRepository.GetByNameAsync(model.Name);
-                if (existingRole != null)
-                {
-                    return Json(new { error = "Bu rol adı zaten kullanılıyor" });
-                }
-
-                var role = new Role
-                {
-                    Name = model.Name,
-                    Description = model.Description,
-                    IsActive = model.IsActive,
-                    CreatedDate = DateTime.Now
-                };
+                role.CreatedDate = DateTime.Now;
+                role.IsActive = true;
 
                 await _roleRepository.AddAsync(role);
-
-                return Json(new { success = true, message = "Rol başarıyla oluşturuldu" });
+                return Json(new { success = true, message = "Rol başarıyla oluşturuldu." });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, message = "Hata: " + ex.Message });
             }
         }
 
         [HttpPost]
-        public async Task<IActionResult> Update([FromBody] UpdateRoleDto model)
+        public async Task<IActionResult> Update([FromBody] Role role)
         {
-            if (!ModelState.IsValid)
-            {
-                return Json(new { error = "Geçersiz veri", errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
-            }
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
 
             try
             {
-                var role = await _roleRepository.GetByIdAsync(model.Id);
-                if (role == null)
-                {
-                    return Json(new { error = "Rol bulunamadı" });
-                }
+                var existingRole = await _roleRepository.GetByIdAsync(role.Id);
+                if (existingRole == null)
+                    return Json(new { success = false, message = "Rol bulunamadı." });
 
-                // Check for duplicate name if changed
-                if (role.Name != model.Name)
-                {
-                    var existingRole = await _roleRepository.GetByNameAsync(model.Name);
-                    if (existingRole != null && existingRole.Id != model.Id)
-                    {
-                        return Json(new { error = "Bu rol adı zaten kullanılıyor" });
-                    }
-                }
-
-                role.Name = model.Name;
-                role.Description = model.Description;
-                role.IsActive = model.IsActive;
                 role.UpdatedDate = DateTime.Now;
-
                 await _roleRepository.UpdateAsync(role);
-
-                return Json(new { success = true, message = "Rol başarıyla güncellendi" });
+                return Json(new { success = true, message = "Rol başarıyla güncellendi." });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, message = "Hata: " + ex.Message });
             }
         }
 
-        [HttpDelete]
+        [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
+            if (!await HasPermissionAsync("DELETE"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
             try
             {
-                var role = await _roleRepository.GetByIdAsync(id);
-                if (role == null)
-                {
-                    return Json(new { error = "Rol bulunamadı" });
-                }
-
-                await _roleRepository.DeleteAsync(role);
-
-                return Json(new { success = true, message = "Rol başarıyla silindi" });
+                await _roleRepository.DeleteAsync(id);
+                return Json(new { success = true, message = "Rol başarıyla silindi." });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, message = "Hata: " + ex.Message });
             }
         }
 
-        // Role Users Management
+        #endregion
+
+        #region Rol-Menü-Yetki İşlemleri
+
+        [HttpGet]
+        public async Task<IActionResult> GetRoleMenuPermissions(int roleId)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var permissions = await _roleRepository.GetRoleMenuPermissionsAsync(roleId);
+                return Json(new { success = true, data = permissions });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AssignMenuPermissionToRole([FromBody] AssignMenuPermissionRequest request)
+        {
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var success = await _roleRepository.AssignMenuPermissionToRoleAsync(
+                    request.RoleId, 
+                    request.MenuId, 
+                    request.PermissionLevel, 
+                    currentUserId, 
+                    request.Notes);
+                
+                if (success)
+                    return Json(new { success = true, message = "Menü yetkisi başarıyla atandı." });
+                else
+                    return Json(new { success = false, message = "Menü yetkisi atanamadı." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RemoveMenuPermissionFromRole([FromBody] RemoveMenuPermissionRequest request)
+        {
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var success = await _roleRepository.RemoveMenuPermissionFromRoleAsync(request.RoleId, request.MenuId);
+                
+                if (success)
+                    return Json(new { success = true, message = "Menü yetkisi başarıyla kaldırıldı." });
+                else
+                    return Json(new { success = false, message = "Menü yetkisi kaldırılamadı." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateRoleMenuPermission([FromBody] UpdateMenuPermissionRequest request)
+        {
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var success = await _roleRepository.UpdateRoleMenuPermissionAsync(
+                    request.RoleId, 
+                    request.MenuId, 
+                    request.NewPermissionLevel, 
+                    currentUserId, 
+                    request.Notes);
+                
+                if (success)
+                    return Json(new { success = true, message = "Menü yetkisi başarıyla güncellendi." });
+                else
+                    return Json(new { success = false, message = "Menü yetkisi güncellenemedi." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAvailableMenusForRole(int roleId, string? search = null)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var menus = await _roleRepository.GetAvailableRolesForMenuAsync(roleId, search);
+                return Json(new { success = true, data = menus });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region Rol Kullanıcıları
+
         [HttpGet]
         public async Task<IActionResult> GetRoleUsers(int roleId)
         {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
             try
             {
-                var role = await _roleRepository.GetByIdAsync(roleId);
+                var users = await _roleRepository.GetRoleUsersAsync(roleId);
+                return Json(new { success = true, data = users });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetRoleUserCount(int roleId)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var count = await _roleRepository.GetRoleUserCountAsync(roleId);
+                return Json(new { success = true, data = count });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region Rol Detayları
+
+        [HttpGet]
+        public async Task<IActionResult> GetRoleDetails(int roleId)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var role = await _roleRepository.GetRoleWithMenuPermissionsAsync(roleId);
                 if (role == null)
-                {
-                    return Json(new { error = "Rol bulunamadı" });
-                }
+                    return Json(new { success = false, message = "Rol bulunamadı." });
 
-                var users = await _userRepository.GetUsersByRoleIdAsync(roleId);
-                var userDtos = users.Select(u => new
-                {
-                    id = u.Id,
-                    username = u.Username,
-                    firstName = u.FirstName,
-                    lastName = u.LastName,
-                    email = u.Email,
-                    isActive = u.IsActive
-                }).ToList();
-
-                return Json(new { success = true, data = userDtos });
+                return Json(new { success = true, data = role });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, message = "Hata: " + ex.Message });
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAvailableUsers(int roleId, string search = "")
+        #endregion
+
+        #region Yardımcı Metodlar
+
+        private async Task<bool> HasPermissionAsync(string permissionLevel)
         {
-            try
-            {
-                var users = await _userRepository.GetAvailableUsersForRoleAsync(roleId, search);
-                var userDtos = users.Select(u => new
-                {
-                    id = u.Id,
-                    username = u.Username,
-                    firstName = u.FirstName,
-                    lastName = u.LastName,
-                    email = u.Email,
-                    isActive = u.IsActive
-                }).ToList();
-
-                return Json(new { success = true, data = userDtos });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
+            var currentUserId = GetCurrentUserId();
+            var menuId = await ResolveMenuIdAsync("Role", "Index");
+            return await _userRepository.HasPermissionAsync(currentUserId, menuId, permissionLevel);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> AssignUserToRole(int roleId, int userId)
+        private async Task<int> ResolveMenuIdAsync(string controller, string action)
         {
-            try
-            {
-                Console.WriteLine($"AssignUserToRole: roleId={roleId}, userId={userId}");
-                var result = await _userRepository.AssignUserToRoleAsync(userId, roleId);
-                Console.WriteLine($"AssignUserToRole result: {result}");
-                
-                if (result)
-                {
-                    return Json(new { success = true, message = "Kullanıcı role başarıyla atandı" });
-                }
-                else
-                {
-                    return Json(new { error = "Kullanıcı zaten bu role atanmış veya kullanıcı bulunamadı" });
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"AssignUserToRole Exception: {ex.Message}");
-                return Json(new { error = ex.Message });
-            }
+            var menu = await _menuRepository.GetMenuByRouteAsync(controller, action);
+            return menu?.Id ?? 0;
         }
 
-        [HttpDelete]
-        public async Task<IActionResult> RemoveUserFromRole(int roleId, int userId)
+        private int GetCurrentUserId()
         {
-            try
-            {
-                var result = await _userRepository.RemoveUserFromRoleAsync(userId, roleId);
-                if (result)
-                {
-                    return Json(new { success = true, message = "Kullanıcı rolden başarıyla çıkarıldı" });
-                }
-                else
-                {
-                    return Json(new { error = "Kullanıcı bu role atanmamış" });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            return userIdClaim != null ? int.Parse(userIdClaim.Value) : 0;
         }
 
-        // Role Menu Permissions Management
-        [HttpGet]
-        public async Task<IActionResult> GetRoleMenus(int roleId)
-        {
-            try
-            {
-                var role = await _roleRepository.GetByIdAsync(roleId);
-                if (role == null)
-                {
-                    return Json(new { error = "Rol bulunamadı" });
-                }
-
-                var menus = await _menuRepository.GetRoleMenusAsync(roleId);
-                var menuDtos = menus.Select(m => new
-                {
-                    id = m.Id,
-                    name = m.Name,
-                    icon = m.Icon,
-                    controller = m.Controller,
-                    action = m.Action,
-                    isActive = m.IsActive
-                }).ToList();
-
-                return Json(new { success = true, data = menuDtos });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAvailableMenusForRole(int roleId, string search = "")
-        {
-            try
-            {
-                var menus = await _roleRepository.GetAvailableMenusForRoleAsync(roleId, search);
-                var menuDtos = menus.Select(m => new
-                {
-                    id = m.Id,
-                    name = m.Name,
-                    icon = m.Icon,
-                    controller = m.Controller,
-                    action = m.Action,
-                    isActive = m.IsActive
-                }).ToList();
-
-                return Json(new { success = true, data = menuDtos });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> AssignMenuToRole(int roleId, int menuId)
-        {
-            try
-            {
-                var result = await _roleRepository.AssignMenuToRoleAsync(roleId, menuId);
-                if (result)
-                {
-                    return Json(new { success = true, message = "Menü role başarıyla atandı" });
-                }
-                else
-                {
-                    return Json(new { error = "Menü zaten bu role atanmış" });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        [HttpDelete]
-        public async Task<IActionResult> RemoveMenuFromRole(int roleId, int menuId)
-        {
-            try
-            {
-                var result = await _roleRepository.RemoveMenuFromRoleAsync(roleId, menuId);
-                if (result)
-                {
-                    return Json(new { success = true, message = "Menü rolden başarıyla çıkarıldı" });
-                }
-                else
-                {
-                    return Json(new { error = "Menü bu role atanmamış" });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
+        #endregion
     }
+
+    #region Request Models
+
+    public class AssignMenuPermissionRequest
+    {
+        public int RoleId { get; set; }
+        public int MenuId { get; set; }
+        public string PermissionLevel { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+    }
+
+    public class RemoveMenuPermissionRequest
+    {
+        public int RoleId { get; set; }
+        public int MenuId { get; set; }
+    }
+
+    public class UpdateMenuPermissionRequest
+    {
+        public int RoleId { get; set; }
+        public int MenuId { get; set; }
+        public string NewPermissionLevel { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+    }
+
+    #endregion
 }

@@ -1,11 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Bussiness.Repository.Abstract;
 using Entities.Entity;
-using Entities.Dto;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
-namespace BigIntSoftwareWeb.Controllers
+namespace Web.Controllers
 {
     [Authorize]
     public class UserController : Controller
@@ -13,253 +12,350 @@ namespace BigIntSoftwareWeb.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IRoleRepository _roleRepository;
         private readonly IMenuRepository _menuRepository;
-        private readonly IPermissionRepository _permissionRepository;
 
-        public UserController(IUserRepository userRepository, IRoleRepository roleRepository, 
-            IMenuRepository menuRepository, IPermissionRepository permissionRepository)
+        public UserController(IUserRepository userRepository, IRoleRepository roleRepository, IMenuRepository menuRepository)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _menuRepository = menuRepository;
-            _permissionRepository = permissionRepository;
         }
 
-        private int? GetCurrentUserId()
-        {
-            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier);
-            return userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId) ? userId : null;
-        }
+        #region Ana Sayfalar
 
-        private async Task<bool> HasPermissionAsync(string permissionCode, int? menuId = null)
-        {
-            var userId = GetCurrentUserId();
-            if (userId == null) return false;
-            return await _permissionRepository.HasPermissionAsync(userId.Value, permissionCode, menuId);
-        }
-
-        // GET: User
         public async Task<IActionResult> Index()
         {
-            // Kullanıcı Yönetimi menü ID'si: 2
-            if (!await HasPermissionAsync("VIEW", 2))
-            {
-                return Forbid();
-            }
-            return View();
+            // Geçici olarak yetki kontrolünü kaldırdık
+            // if (!await HasPermissionAsync("VIEW"))
+            //     return Forbid();
+
+            var users = await _userRepository.GetAllAsync();
+            return View(users);
         }
 
-        // GET: User/GetUsers (AJAX)
+        #endregion
+
+        #region AJAX API Methods
+
         [HttpGet]
         public async Task<IActionResult> GetUsers()
         {
-            if (!await HasPermissionAsync("VIEW", 2))
-            {
-                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
-            }
-
             try
             {
                 var users = await _userRepository.GetAllAsync();
-                var userList = users.Select(u => new
-                {
-                    id = u.Id,
-                    username = u.Username,
-                    firstName = u.FirstName,
-                    lastName = u.LastName,
-                    email = u.Email,
-                    isActive = u.IsActive,
-                    createdDate = u.CreatedDate.ToString("dd.MM.yyyy HH:mm"),
-                    lastLoginDate = u.LastLoginDate?.ToString("dd.MM.yyyy HH:mm") ?? "Hiç giriş yapmamış"
-                }).ToList();
-
-                return Json(new { data = userList });
+                return Json(new { success = true, data = users });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, error = ex.Message });
             }
         }
 
-        // GET: User/GetUser (AJAX)
         [HttpGet]
         public async Task<IActionResult> GetUser(int id)
         {
-            if (!await HasPermissionAsync("VIEW", 2))
-            {
-                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
-            }
-
             try
             {
                 var user = await _userRepository.GetByIdAsync(id);
                 if (user == null)
-                {
-                    return Json(new { error = "Kullanıcı bulunamadı" });
-                }
+                    return Json(new { success = false, error = "Kullanıcı bulunamadı" });
 
-                var userData = new
-                {
-                    id = user.Id,
-                    username = user.Username,
-                    firstName = user.FirstName,
-                    lastName = user.LastName,
-                    email = user.Email,
-                    isActive = user.IsActive,
-                    createdDate = user.CreatedDate.ToString("dd.MM.yyyy HH:mm"),
-                    lastLoginDate = user.LastLoginDate?.ToString("dd.MM.yyyy HH:mm") ?? "Hiç giriş yapmamış"
-                };
-
-                return Json(new { success = true, data = userData });
+                return Json(new { success = true, data = user });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, error = ex.Message });
             }
         }
 
+        #endregion
 
-        // POST: User/Create (AJAX)
+
+        #region Kullanıcı CRUD İşlemleri
+
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateUserDto model)
+        public async Task<IActionResult> Create([FromBody] User user)
         {
-            if (!await HasPermissionAsync("CREATE", 2))
-            {
-                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
-            }
+            if (!await HasPermissionAsync("CREATE"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
 
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .Select(e => e.ErrorMessage)
-                        .ToList();
-                    return Json(new { error = string.Join(", ", errors) });
-                }
-
-                // Kullanıcı adı kontrolü
-                var existingUser = await _userRepository.GetByUsernameAsync(model.Username);
-                if (existingUser != null)
-                {
-                    return Json(new { error = "Bu kullanıcı adı zaten kullanılıyor" });
-                }
-
-                // Email kontrolü
-                var existingEmail = await _userRepository.GetByEmailAsync(model.Email);
-                if (existingEmail != null)
-                {
-                    return Json(new { error = "Bu email adresi zaten kullanılıyor" });
-                }
-
-                var user = new User
-                {
-                    Username = model.Username,
-                    FirstName = model.FirstName,
-                    LastName = model.LastName,
-                    Email = model.Email,
-                    Password = HashPassword(model.Password),
-                    IsActive = model.IsActive,
-                    CreatedDate = DateTime.Now
-                };
+                // Şifre hash'le
+                user.Password = HashPassword(user.Password);
+                user.CreatedDate = DateTime.Now;
+                user.IsActive = true;
 
                 await _userRepository.AddAsync(user);
-
-                return Json(new { success = true, message = "Kullanıcı başarıyla oluşturuldu" });
+                return Json(new { success = true, message = "Kullanıcı başarıyla oluşturuldu." });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, message = "Hata: " + ex.Message });
             }
         }
 
-        // PUT: User/Update/5 (AJAX)
-        [HttpPut]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto model)
+        [HttpPost]
+        public async Task<IActionResult> Update([FromBody] User user)
         {
-            if (!await HasPermissionAsync("EDIT", 2))
-            {
-                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
-            }
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
 
             try
             {
-                if (!ModelState.IsValid)
+                var existingUser = await _userRepository.GetByIdAsync(user.Id);
+                if (existingUser == null)
+                    return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+
+                // Şifre değişmemişse eski şifreyi koru
+                if (string.IsNullOrEmpty(user.Password))
                 {
-                    var errors = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .Select(e => e.ErrorMessage)
-                        .ToList();
-                    return Json(new { error = string.Join(", ", errors) });
+                    user.Password = existingUser.Password;
                 }
-
-                var user = await _userRepository.GetByIdAsync(id);
-                if (user == null)
+                else
                 {
-                    return Json(new { error = "Kullanıcı bulunamadı" });
-                }
-
-                // Kullanıcı adı kontrolü (kendisi hariç)
-                var existingUser = await _userRepository.GetByUsernameAsync(model.Username);
-                if (existingUser != null && existingUser.Id != id)
-                {
-                    return Json(new { error = "Bu kullanıcı adı zaten kullanılıyor" });
-                }
-
-                // Email kontrolü (kendisi hariç)
-                var existingEmail = await _userRepository.GetByEmailAsync(model.Email);
-                if (existingEmail != null && existingEmail.Id != id)
-                {
-                    return Json(new { error = "Bu email adresi zaten kullanılıyor" });
-                }
-
-                user.Username = model.Username;
-                user.FirstName = model.FirstName;
-                user.LastName = model.LastName;
-                user.Email = model.Email;
-                user.IsActive = model.IsActive;
-
-                // Şifre değiştirilmişse güncelle
-                if (!string.IsNullOrEmpty(model.Password))
-                {
-                    user.Password = HashPassword(model.Password);
+                    user.Password = HashPassword(user.Password);
                 }
 
                 await _userRepository.UpdateAsync(user);
-
-                return Json(new { success = true, message = "Kullanıcı başarıyla güncellendi" });
+                return Json(new { success = true, message = "Kullanıcı başarıyla güncellendi." });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, message = "Hata: " + ex.Message });
             }
         }
 
-        // DELETE: User/Delete/5 (AJAX)
-        [HttpDelete]
+        [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
-            if (!await HasPermissionAsync("DELETE", 2))
-            {
-                return Json(new { error = "Bu işlem için yetkiniz bulunmamaktadır" });
-            }
+            if (!await HasPermissionAsync("DELETE"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
 
             try
             {
-                var user = await _userRepository.GetByIdAsync(id);
-                if (user == null)
-                {
-                    return Json(new { error = "Kullanıcı bulunamadı" });
-                }
-
-                await _userRepository.DeleteAsync(user);
-
-                return Json(new { success = true, message = "Kullanıcı başarıyla silindi" });
+                await _userRepository.DeleteAsync(id);
+                return Json(new { success = true, message = "Kullanıcı başarıyla silindi." });
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { success = false, message = "Hata: " + ex.Message });
             }
+        }
+
+        #endregion
+
+        #region Kullanıcı-Rol İşlemleri
+
+        [HttpGet]
+        public async Task<IActionResult> GetUserRoles(int userId)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var roles = await _userRepository.GetUserRolesAsync(userId);
+                return Json(new { success = true, data = roles });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AssignRoleToUser([FromBody] AssignRoleRequest request)
+        {
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var success = await _userRepository.AssignRoleToUserAsync(request.UserId, request.RoleId, currentUserId, request.Notes);
+                
+                if (success)
+                    return Json(new { success = true, message = "Rol başarıyla atandı." });
+                else
+                    return Json(new { success = false, message = "Rol atanamadı." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RemoveRoleFromUser([FromBody] RemoveRoleRequest request)
+        {
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var success = await _userRepository.RemoveRoleFromUserAsync(request.UserId, request.RoleId);
+                
+                if (success)
+                    return Json(new { success = true, message = "Rol başarıyla kaldırıldı." });
+                else
+                    return Json(new { success = false, message = "Rol kaldırılamadı." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAvailableRolesForUser(int userId, string? search = null)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var roles = await _roleRepository.GetAvailableRolesForUserAsync(userId, search);
+                return Json(new { success = true, data = roles });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region Kullanıcı Ekstra Yetki İşlemleri
+
+        [HttpGet]
+        public async Task<IActionResult> GetUserExtraPermissions(int userId)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var permissions = await _userRepository.GetUserExtraPermissionsAsync(userId);
+                return Json(new { success = true, data = permissions });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AssignExtraPermissionToUser([FromBody] AssignExtraPermissionRequest request)
+        {
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var success = await _userRepository.AssignExtraPermissionToUserAsync(
+                    request.UserId, 
+                    request.MenuId, 
+                    request.PermissionLevel, 
+                    request.Reason, 
+                    currentUserId, 
+                    request.ExpiryDate, 
+                    request.Notes);
+                
+                if (success)
+                    return Json(new { success = true, message = "Ekstra yetki başarıyla atandı." });
+                else
+                    return Json(new { success = false, message = "Ekstra yetki atanamadı." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RemoveExtraPermissionFromUser([FromBody] RemoveExtraPermissionRequest request)
+        {
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var success = await _userRepository.RemoveExtraPermissionFromUserAsync(request.UserId, request.MenuId);
+                
+                if (success)
+                    return Json(new { success = true, message = "Ekstra yetki başarıyla kaldırıldı." });
+                else
+                    return Json(new { success = false, message = "Ekstra yetki kaldırılamadı." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAvailableMenusForUser(int userId, string? search = null)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var menus = await _userRepository.GetAvailableUsersForMenuAsync(userId, search);
+                return Json(new { success = true, data = menus });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region Kullanıcı Detayları
+
+        [HttpGet]
+        public async Task<IActionResult> GetUserDetails(int userId)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                var user = await _userRepository.GetUserWithRolesAsync(userId);
+                if (user == null)
+                    return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+
+                return Json(new { success = true, data = user });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region Yardımcı Metodlar
+
+        private async Task<bool> HasPermissionAsync(string permissionLevel)
+        {
+            var currentUserId = GetCurrentUserId();
+            var menuId = await ResolveMenuIdAsync("User", "Index");
+            return await _userRepository.HasPermissionAsync(currentUserId, menuId, permissionLevel);
+        }
+
+        private async Task<int> ResolveMenuIdAsync(string controller, string action)
+        {
+            var menu = await _menuRepository.GetMenuByRouteAsync(controller, action);
+            return menu?.Id ?? 0;
+        }
+
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            return userIdClaim != null ? int.Parse(userIdClaim.Value) : 0;
         }
 
         private string HashPassword(string password)
@@ -271,239 +367,39 @@ namespace BigIntSoftwareWeb.Controllers
             }
         }
 
-        // User Role Management
-        [HttpGet]
-        public async Task<IActionResult> GetUserRoles(int userId)
-        {
-            try
-            {
-                var user = await _userRepository.GetByIdAsync(userId);
-                if (user == null)
-                {
-                    return Json(new { error = "Kullanıcı bulunamadı" });
-                }
-
-                var roles = await _roleRepository.GetUserRolesAsync(userId);
-                var roleDtos = roles.Select(r => new
-                {
-                    id = r.Id,
-                    name = r.Name,
-                    description = r.Description,
-                    isActive = r.IsActive
-                }).ToList();
-
-                return Json(new { success = true, data = roleDtos });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAvailableRolesForUser(int userId, string search = "")
-        {
-            try
-            {
-                var roles = await _roleRepository.GetAvailableRolesForUserAsync(userId, search);
-                var roleDtos = roles.Select(r => new
-                {
-                    id = r.Id,
-                    name = r.Name,
-                    description = r.Description,
-                    isActive = r.IsActive
-                }).ToList();
-
-                return Json(new { success = true, data = roleDtos });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> AssignRoleToUser(int userId, int roleId)
-        {
-            try
-            {
-                var result = await _roleRepository.AssignRoleToUserAsync(userId, roleId);
-                if (result)
-                {
-                    return Json(new { success = true, message = "Kullanıcıya rol atandı" });
-                }
-                else
-                {
-                    return Json(new { error = "Kullanıcı zaten bu role sahip" });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        [HttpDelete]
-        public async Task<IActionResult> RemoveRoleFromUser(int userId, int roleId)
-        {
-            try
-            {
-                var result = await _roleRepository.RemoveRoleFromUserAsync(userId, roleId);
-                if (result)
-                {
-                    return Json(new { success = true, message = "Kullanıcının rolü kaldırıldı" });
-                }
-                else
-                {
-                    return Json(new { error = "Kullanıcı bu role sahip değil" });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        // User Menu Permissions Management
-        [HttpGet]
-        public async Task<IActionResult> GetUserMenus(int userId)
-        {
-            try
-            {
-                var user = await _userRepository.GetByIdAsync(userId);
-                if (user == null)
-                {
-                    return Json(new { error = "Kullanıcı bulunamadı" });
-                }
-
-                // Kullanıcının direkt menü yetkilerini getir
-                var directMenus = await _menuRepository.GetUserDirectMenusAsync(userId);
-                
-                // Kullanıcının rol bazlı menü yetkilerini getir
-                var roleMenus = await _menuRepository.GetUserRoleMenusAsync(userId);
-                
-                var menuDtos = new List<object>();
-                
-                // Direkt yetkileri ekle
-                foreach (var menu in directMenus)
-                {
-                    menuDtos.Add(new
-                    {
-                        id = menu.Id,
-                        name = menu.Name,
-                        icon = menu.Icon,
-                        controller = menu.Controller,
-                        action = menu.Action,
-                        isActive = menu.IsActive,
-                        source = "Direct"
-                    });
-                }
-                
-                // Rol bazlı yetkileri ekle (direkt yetkilerle çakışmayanlar)
-                var directMenuIds = directMenus.Select(m => m.Id).ToHashSet();
-                foreach (var menu in roleMenus.Where(m => !directMenuIds.Contains(m.Id)))
-                {
-                    menuDtos.Add(new
-                    {
-                        id = menu.Id,
-                        name = menu.Name,
-                        icon = menu.Icon,
-                        controller = menu.Controller,
-                        action = menu.Action,
-                        isActive = menu.IsActive,
-                        source = "Role"
-                    });
-                }
-
-                return Json(new { success = true, data = menuDtos });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAvailableMenusForUser(int userId, string search = "")
-        {
-            try
-            {
-                // Kullanıcının mevcut menü yetkilerini al (rol + direkt)
-                var userMenus = await _menuRepository.GetUserMenusAsync(userId);
-                var userMenuIds = userMenus.Select(m => m.Id).ToHashSet();
-
-                // Tüm aktif menüleri al
-                var allMenus = await _menuRepository.GetVisibleMenusAsync();
-                
-                // Kullanıcının yetkisi olmayan menüleri filtrele
-                var availableMenus = allMenus.Where(m => !userMenuIds.Contains(m.Id));
-                
-                // Arama filtresi uygula
-                if (!string.IsNullOrEmpty(search))
-                {
-                    availableMenus = availableMenus.Where(m => 
-                        m.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || 
-                        (m.Description != null && m.Description.Contains(search, StringComparison.OrdinalIgnoreCase)));
-                }
-
-                var menuDtos = availableMenus.Select(m => new
-                {
-                    id = m.Id,
-                    name = m.Name,
-                    icon = m.Icon,
-                    controller = m.Controller,
-                    action = m.Action,
-                    isActive = m.IsActive
-                }).ToList();
-
-                return Json(new { success = true, data = menuDtos });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> AssignMenuToUser(int userId, int menuId)
-        {
-            try
-            {
-                var result = await _userRepository.AssignUserToMenuAsync(userId, menuId);
-                if (result)
-                {
-                    return Json(new { success = true, message = "Kullanıcıya menü yetkisi verildi" });
-                }
-                else
-                {
-                    return Json(new { error = "Kullanıcı zaten bu menüye yetkili" });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        [HttpDelete]
-        public async Task<IActionResult> RemoveMenuFromUser(int userId, int menuId)
-        {
-            try
-            {
-                var result = await _userRepository.RemoveUserFromMenuAsync(userId, menuId);
-                if (result)
-                {
-                    return Json(new { success = true, message = "Kullanıcının menü yetkisi kaldırıldı" });
-                }
-                else
-                {
-                    return Json(new { error = "Kullanıcı bu menüye yetkili değil" });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
+        #endregion
     }
+
+    #region Request Models
+
+    public class AssignRoleRequest
+    {
+        public int UserId { get; set; }
+        public int RoleId { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class RemoveRoleRequest
+    {
+        public int UserId { get; set; }
+        public int RoleId { get; set; }
+    }
+
+    public class AssignExtraPermissionRequest
+    {
+        public int UserId { get; set; }
+        public int MenuId { get; set; }
+        public string PermissionLevel { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+        public DateTime? ExpiryDate { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class RemoveExtraPermissionRequest
+    {
+        public int UserId { get; set; }
+        public int MenuId { get; set; }
+    }
+
+    #endregion
 }

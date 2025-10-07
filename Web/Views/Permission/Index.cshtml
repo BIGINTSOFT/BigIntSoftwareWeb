@@ -5,7 +5,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0">Yetki Yönetimi</h1>
-    @if (await Context.RequestServices.HasPermissionAsync(User, "CREATE", 18))
+    @if (await Context.RequestServices.HasPermissionAsync(User, "CREATE"))
     {
         <button class="btn btn-primary" id="addPermissionBtn">
             <i class="bi bi-plus-circle me-2"></i> Yeni Yetki
@@ -311,11 +311,12 @@
     
     <script>
         // Permission kontrolü için JavaScript değişkenleri
+        const permissionMenuId = @Json.Serialize(await Context.RequestServices.ResolveMenuIdAsync("Permission", "Index"));
         window.permissionPermissions = {
-            canCreate: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "CREATE", 18)),
-            canEdit: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "EDIT", 18)),
-            canDelete: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "DELETE", 18)),
-            canView: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "VIEW", 18))
+            canCreate: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "CREATE")),
+            canEdit: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "EDIT")),
+            canDelete: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "DELETE")),
+            canView: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "VIEW"))
         };
     </script>
 }

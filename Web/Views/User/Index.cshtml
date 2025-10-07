@@ -8,7 +8,7 @@
         <h1 class="h3 mb-1">Kullanıcı Yönetimi</h1>
         <p class="text-muted mb-0">Sistem kullanıcılarını yönetin</p>
     </div>
-    @if (await Context.RequestServices.HasPermissionAsync(User, "CREATE", 2))
+    @if (await Context.RequestServices.HasPermissionAsync(User, "CREATE"))
     {
         <button class="btn btn-primary" id="addUserBtn">
             <i class="bi bi-person-plus me-2"></i>
@@ -30,7 +30,7 @@
                         <th>Email</th>
                         <th>Durum</th>
                         <th>Roller</th>
-                        <th>Menü Yetkileri</th>
+                        <th>Özel Yetkiler</th>
                         <th>Oluşturulma</th>
                         <th>Son Giriş</th>
                         <th>İşlemler</th>
@@ -266,14 +266,14 @@
     </div>
 </div>
 
-<!-- User Menu Permissions Modal -->
-<div class="modal fade" id="userMenuPermissionsModal" tabindex="-1" aria-labelledby="userMenuPermissionsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-slide" style="max-width: 40%; width: 40%;">
+<!-- User Extra Permissions Modal (Yeni ERP Yapısı) -->
+<div class="modal fade" id="userExtraPermissionsModal" tabindex="-1" aria-labelledby="userExtraPermissionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-slide" style="max-width: 50%; width: 50%;">
         <div class="modal-content modern-modal">
             <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title" id="userMenuPermissionsModalLabel">
-                    <i class="bi bi-list-ul me-2"></i>
-                    Kullanıcı Menü Yetkileri
+                <h5 class="modal-title" id="userExtraPermissionsModalLabel">
+                    <i class="bi bi-gear me-2"></i>
+                    Kullanıcı Özel Yetkileri
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -291,19 +291,19 @@
                                 <div class="row">
                                     <div class="col-md-3">
                                         <h6 class="mb-1 text-muted">Kullanıcı Adı</h6>
-                                        <p class="mb-0 fw-bold" id="modalMenuUserName">-</p>
+                                        <p class="mb-0 fw-bold" id="modalExtraPermissionUserName">-</p>
                                     </div>
                                     <div class="col-md-3">
                                         <h6 class="mb-1 text-muted">Ad Soyad</h6>
-                                        <p class="mb-0 fw-bold" id="modalMenuUserFullName">-</p>
+                                        <p class="mb-0 fw-bold" id="modalExtraPermissionUserFullName">-</p>
                                     </div>
                                     <div class="col-md-3">
                                         <h6 class="mb-1 text-muted">E-mail</h6>
-                                        <p class="mb-0 fw-bold" id="modalMenuUserEmail">-</p>
+                                        <p class="mb-0 fw-bold" id="modalExtraPermissionUserEmail">-</p>
                                     </div>
                                     <div class="col-md-3">
                                         <h6 class="mb-1 text-muted">Durum</h6>
-                                        <span class="badge" id="modalMenuUserStatus">-</span>
+                                        <span class="badge" id="modalExtraPermissionUserStatus">-</span>
                                     </div>
                                 </div>
                             </div>
@@ -312,24 +312,24 @@
                 </div>
 
                 <!-- Bilgilendirme Mesajları -->
-                <div id="menuModalAlert" class="alert alert-dismissible fade" role="alert" style="display: none;">
-                    <span id="menuModalAlertMessage"></span>
+                <div id="extraPermissionModalAlert" class="alert alert-dismissible fade" role="alert" style="display: none;">
+                    <span id="extraPermissionModalAlertMessage"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
                 <div class="row">
-                    <!-- Mevcut Menü Yetkileri -->
+                    <!-- Mevcut Özel Yetkiler -->
                     <div class="col-lg-6">
                         <div class="card border-warning">
                             <div class="card-header bg-warning text-dark">
                                 <h6 class="mb-0">
-                                    <i class="bi bi-list-ul me-2"></i>
-                                    Kullanıcının Menü Yetkileri
+                                    <i class="bi bi-gear me-2"></i>
+                                    Kullanıcının Özel Yetkileri
                                 </h6>
                             </div>
                             <div class="card-body p-0">
                                 <div style="height: 400px; overflow-y: auto;">
-                                    <div id="assignedUserMenusList" class="p-3">
+                                    <div id="assignedUserExtraPermissionsList" class="p-3">
                                         <!-- AJAX ile doldurulacak -->
                                     </div>
                                 </div>
@@ -337,13 +337,13 @@
                         </div>
                     </div>
                     
-                    <!-- Menü Yetkisi Ekleme -->
+                    <!-- Özel Yetki Ekleme -->
                     <div class="col-lg-6">
                         <div class="card border-success">
                             <div class="card-header bg-success text-white">
                                 <h6 class="mb-0">
                                     <i class="bi bi-plus-circle me-2"></i>
-                                    Yeni Menü Yetkisi Ekle
+                                    Yeni Özel Yetki Ekle
                                 </h6>
                             </div>
                             <div class="card-body p-0">
@@ -352,12 +352,122 @@
                                         <span class="input-group-text bg-light">
                                             <i class="bi bi-search"></i>
                                         </span>
-                                        <input type="text" class="form-control form-control-sm" id="menuSearchInput" 
+                                        <input type="text" class="form-control form-control-sm" id="extraPermissionSearchInput" 
                                                placeholder="Menü ara...">
                                     </div>
                                 </div>
                                 <div style="height: 350px; overflow-y: auto;">
-                                    <div id="availableUserMenusList" class="p-3">
+                                    <div id="availableMenusForExtraPermissionList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User System Permissions Modal -->
+<div class="modal fade" id="userSystemPermissionsModal" tabindex="-1" aria-labelledby="userSystemPermissionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-slide" style="max-width: 40%; width: 40%;">
+        <div class="modal-content modern-modal">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="userSystemPermissionsModalLabel">
+                    <i class="bi bi-gear me-2"></i>
+                    Kullanıcı Sistem Yetkileri
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Kullanıcı Bilgileri Kartı -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-body bg-light">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="avatar-circle bg-info text-white">
+                                    <i class="bi bi-person-fill fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">Kullanıcı Adı</h6>
+                                        <p class="mb-0 fw-bold" id="modalPermissionUserName">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">Ad Soyad</h6>
+                                        <p class="mb-0 fw-bold" id="modalPermissionUserFullName">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">E-mail</h6>
+                                        <p class="mb-0 fw-bold" id="modalPermissionUserEmail">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 text-muted">Durum</h6>
+                                        <span class="badge" id="modalPermissionUserStatus">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bilgilendirme Mesajları -->
+                <div id="permissionModalAlert" class="alert alert-dismissible fade" role="alert" style="display: none;">
+                    <span id="permissionModalAlertMessage"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="row">
+                    <!-- Mevcut Sistem Yetkileri -->
+                    <div class="col-lg-6">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-gear me-2"></i>
+                                    Kullanıcının Sistem Yetkileri
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div style="height: 400px; overflow-y: auto;">
+                                    <div id="assignedUserPermissionsList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sistem Yetkisi Ekleme -->
+                    <div class="col-lg-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    Yeni Sistem Yetkisi Ekle
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="p-3 border-bottom">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm" id="permissionSearchInput" 
+                                               placeholder="Yetki ara...">
+                                    </div>
+                                </div>
+                                <div style="height: 350px; overflow-y: auto;">
+                                    <div id="availableUserPermissionsList" class="p-3">
                                         <!-- AJAX ile doldurulacak -->
                                     </div>
                                 </div>
@@ -383,10 +493,10 @@
     <script>
         // Permission kontrolü için JavaScript değişkenleri
         window.userPermissions = {
-            canCreate: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "CREATE", 2)),
-            canEdit: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "EDIT", 2)),
-            canDelete: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "DELETE", 2)),
-            canView: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "VIEW", 2))
+            canCreate: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "CREATE")),
+            canEdit: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "EDIT")),
+            canDelete: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "DELETE")),
+            canView: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "VIEW"))
         };
     </script>
 }

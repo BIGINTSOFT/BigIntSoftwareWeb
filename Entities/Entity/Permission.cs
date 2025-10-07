@@ -22,9 +22,5 @@ namespace Entities.Entity
         public DateTime CreatedDate { get; set; } = DateTime.Now;
 
         public DateTime? UpdatedDate { get; set; }
-
-        // Navigation Properties
-        public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
-        public virtual ICollection<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
     }
 }
