@@ -23,11 +23,11 @@ function initRoleDataTable() {
             }
         },
         "columns": [
-            { "data": "id" },
-            { "data": "name" },
-            { "data": "description" },
+            { "data": "Id" },
+            { "data": "Name" },
+            { "data": "Description" },
             { 
-                "data": "isActive",
+                "data": "IsActive",
                 "render": function(data, type, row) {
                     return data ? 
                         '<span class="badge bg-success">Aktif</span>' : 
@@ -35,7 +35,7 @@ function initRoleDataTable() {
                 }
             },
             { 
-                "data": "createdDate",
+                "data": "CreatedDate",
                 "render": function(data, type, row) {
                     return new Date(data).toLocaleDateString('tr-TR');
                 }
@@ -45,7 +45,7 @@ function initRoleDataTable() {
                 "orderable": false,
                 "render": function(data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-outline-primary role-permissions" data-role-id="${row.id}" title="Yetkiler">
+                        <button class="btn btn-sm btn-outline-primary role-permissions" data-role-id="${row.Id}" title="Yetkiler">
                             <i class="bi bi-shield-check"></i>
                         </button>
                     `;
@@ -57,10 +57,10 @@ function initRoleDataTable() {
                 "render": function(data, type, row) {
                     return `
                         <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-primary edit-role" data-id="${row.id}">
+                            <button class="btn btn-sm btn-outline-primary edit-role" data-id="${row.Id}">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger delete-role" data-id="${row.id}">
+                            <button class="btn btn-sm btn-outline-danger delete-role" data-id="${row.Id}">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
@@ -118,10 +118,10 @@ $(document).ready(function() {
                 if (response.success) {
                     var data = response.data;
                     $('#roleModalLabel').text('Rol Düzenle');
-                    $('#roleId').val(data.id);
-                    $('#roleName').val(data.name);
-                    $('#roleDescription').val(data.description);
-                    $('#roleIsActive').prop('checked', data.isActive);
+                    $('#roleId').val(data.Id);
+                    $('#roleName').val(data.Name);
+                    $('#roleDescription').val(data.Description);
+                    $('#roleIsActive').prop('checked', data.IsActive);
                     $('#roleModal').modal('show');
                     console.log('✅ Role edit form populated');
                 } else {
@@ -215,9 +215,9 @@ $(document).ready(function() {
         loadRoleUsers(roleId);
         loadAvailableUsers(roleId);
         
-        // Menüleri yükle
-        loadRoleMenus(roleId);
-        loadAvailableMenusForRole(roleId);
+        // Menü yetkilerini yükle (Yeni ERP Yapısı)
+        loadRoleMenuPermissions(roleId);
+        loadAvailableMenusForRolePermission(roleId);
         
         // Store current role ID
         $('#rolePermissionsModal').data('role-id', roleId);
@@ -247,8 +247,8 @@ $(document).ready(function() {
 
     function displayRolePermissionsInfo(role) {
         console.log('🔍 Displaying role permissions info:', role);
-        $('#modalRolePermissionsName').text(role.name || '-');
-        $('#modalRolePermissionsDescription').text(role.description || '-');
+        $('#modalRolePermissionsName').text(role.Name || '-');
+        $('#modalRolePermissionsDescription').text(role.Description || '-');
         console.log('✅ Role permissions info displayed');
     }
 
@@ -314,8 +314,8 @@ $(document).ready(function() {
             `;
         } else {
             users.forEach(function(user) {
-                var fullName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
-                var statusBadge = user.isActive ? 
+                var fullName = ((user.FirstName || '') + ' ' + (user.LastName || '')).trim();
+                var statusBadge = user.IsActive ? 
                     '<span class="badge bg-success me-2">Aktif</span>' : 
                     '<span class="badge bg-danger me-2">Pasif</span>';
                 
@@ -327,10 +327,10 @@ $(document).ready(function() {
                                 <span class="fw-bold">${fullName || '-'}</span>
                                 ${statusBadge}
                             </div>
-                            <div class="role-description">@${user.username} • ${user.email || '-'}</div>
+                            <div class="role-description">@${user.Username} • ${user.Email || '-'}</div>
                         </div>
                         <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-danger remove-user" data-user-id="${user.id}" title="Kullanıcıyı Kaldır">
+                            <button class="btn btn-sm btn-outline-danger remove-user" data-user-id="${user.Id}" title="Kullanıcıyı Kaldır">
                                 <i class="bi bi-x"></i>
                             </button>
                         </div>
@@ -352,8 +352,8 @@ $(document).ready(function() {
             `;
         } else {
             users.forEach(function(user) {
-                var fullName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
-                var statusBadge = user.isActive ? 
+                var fullName = ((user.FirstName || '') + ' ' + (user.LastName || '')).trim();
+                var statusBadge = user.IsActive ? 
                     '<span class="badge bg-success me-2">Aktif</span>' : 
                     '<span class="badge bg-danger me-2">Pasif</span>';
                 
@@ -365,10 +365,10 @@ $(document).ready(function() {
                                 <span class="fw-bold">${fullName || '-'}</span>
                                 ${statusBadge}
                             </div>
-                            <div class="role-description">@${user.username} • ${user.email || '-'}</div>
+                            <div class="role-description">@${user.Username} • ${user.Email || '-'}</div>
                         </div>
                         <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-success add-user" data-user-id="${user.id}" title="Kullanıcıyı Ekle">
+                            <button class="btn btn-sm btn-outline-success add-user" data-user-id="${user.Id}" title="Kullanıcıyı Ekle">
                                 <i class="bi bi-plus"></i>
                             </button>
                         </div>
@@ -434,50 +434,67 @@ $(document).ready(function() {
         loadAvailableUsers(roleId, search);
     });
 
-    // Role Menu Management
-    $(document).on('click', '.add-role-menu', function() {
+    // Role Menu Permission Management (Yeni ERP Yapısı)
+    $(document).on('click', '.add-role-menu-permission', function() {
         var menuId = $(this).data('menu-id');
+        var permissionLevel = $(this).data('permission-level');
         var roleId = $('#rolePermissionsModal').data('role-id');
+        var $button = $(this);
+        
+        // Show loading state
+        $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
         
         $.ajax({
-            url: '/Role/AssignMenuToRole',
+            url: '/Role/AssignMenuPermissionToRole',
             type: 'POST',
-            data: { roleId: roleId, menuId: menuId },
+            data: { roleId: roleId, menuId: menuId, permissionLevel: permissionLevel },
             success: function(response) {
                 if (response.success) {
                     showRolePermissionsModalAlert(response.message, 'success');
-                    loadRoleMenus(roleId);
-                    loadAvailableMenusForRole(roleId);
+                    loadRoleMenuPermissions(roleId);
+                    loadAvailableMenusForRolePermission(roleId);
                 } else {
                     showRolePermissionsModalAlert(response.error, 'error');
                 }
             },
             error: function() {
-                showRolePermissionsModalAlert('Menü atanırken hata oluştu!', 'error');
+                showRolePermissionsModalAlert('Menü yetkisi atanırken hata oluştu!', 'error');
+            },
+            complete: function() {
+                // Reset button state
+                $button.html('<i class="bi bi-plus"></i>').prop('disabled', false);
             }
         });
     });
 
-    // Remove Menu from Role
-    $(document).on('click', '.remove-role-menu', function() {
-        var menuId = $(this).data('menu-id');
+    // Remove Menu Permission from Role
+    $(document).on('click', '.remove-role-menu-permission', function() {
+        var permissionId = $(this).data('permission-id');
         var roleId = $('#rolePermissionsModal').data('role-id');
+        var $button = $(this);
+        
+        // Show loading state
+        $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
         
         $.ajax({
-            url: '/Role/RemoveMenuFromRole',
+            url: '/Role/RemoveMenuPermissionFromRole',
             type: 'DELETE',
-            data: { roleId: roleId, menuId: menuId },
+            data: { roleId: roleId, permissionId: permissionId },
             success: function(response) {
                 if (response.success) {
                     showRolePermissionsModalAlert(response.message, 'success');
-                    loadRoleMenus(roleId);
-                    loadAvailableMenusForRole(roleId);
+                    loadRoleMenuPermissions(roleId);
+                    loadAvailableMenusForRolePermission(roleId);
                 } else {
                     showRolePermissionsModalAlert(response.error, 'error');
                 }
             },
             error: function() {
-                showRolePermissionsModalAlert('Menü kaldırılırken hata oluştu!', 'error');
+                showRolePermissionsModalAlert('Menü yetkisi kaldırılırken hata oluştu!', 'error');
+            },
+            complete: function() {
+                // Reset button state
+                $button.html('<i class="bi bi-x"></i>').prop('disabled', false);
             }
         });
     });
@@ -486,21 +503,76 @@ $(document).ready(function() {
     $('#roleMenuSearch').on('input', function() {
         var search = $(this).val();
         var roleId = $('#rolePermissionsModal').data('role-id');
-        loadAvailableMenusForRole(roleId, search);
+        loadAvailableMenusForRolePermission(roleId, search);
+    });
+
+    // Role Menu Permission Search
+    $('#roleMenuSearch').on('input', function() {
+        var search = $(this).val();
+        var roleId = $('#rolePermissionsModal').data('role-id');
+        loadAvailableMenusForRolePermission(roleId, search);
+    });
+
+    // Add System Permission to Role
+    $(document).on('click', '.add-system-permission', function() {
+        var permissionId = $(this).data('permission-id');
+        var roleId = $('#rolePermissionsModal').data('role-id');
+        
+        $.ajax({
+            url: '/Role/AssignSystemPermissionToRole',
+            type: 'POST',
+            data: { roleId: roleId, permissionId: permissionId },
+            success: function(response) {
+                if (response.success) {
+                    showRolePermissionsModalAlert(response.message, 'success');
+                    loadRoleSystemPermissions(roleId);
+                    loadAvailableSystemPermissionsForRole(roleId);
+                } else {
+                    showRolePermissionsModalAlert(response.error, 'error');
+                }
+            },
+            error: function() {
+                showRolePermissionsModalAlert('Sistem yetkisi atanırken hata oluştu!', 'error');
+            }
+        });
+    });
+
+    // Remove System Permission from Role
+    $(document).on('click', '.remove-system-permission', function() {
+        var permissionId = $(this).data('permission-id');
+        var roleId = $('#rolePermissionsModal').data('role-id');
+        
+        $.ajax({
+            url: '/Role/RemoveSystemPermissionFromRole',
+            type: 'DELETE',
+            data: { roleId: roleId, permissionId: permissionId },
+            success: function(response) {
+                if (response.success) {
+                    showRolePermissionsModalAlert(response.message, 'success');
+                    loadRoleSystemPermissions(roleId);
+                    loadAvailableSystemPermissionsForRole(roleId);
+                } else {
+                    showRolePermissionsModalAlert(response.error, 'error');
+                }
+            },
+            error: function() {
+                showRolePermissionsModalAlert('Sistem yetkisi kaldırılırken hata oluştu!', 'error');
+            }
+        });
     });
 
 });
 
-// Role Menu Management Functions
+// Role Menu Permission Management Functions (Yeni ERP Yapısı)
 
-function loadRoleMenus(roleId) {
+function loadRoleMenuPermissions(roleId) {
     $.ajax({
-        url: '/Role/GetRoleMenus',
+        url: '/Role/GetRoleMenuPermissions',
         type: 'GET',
         data: { roleId: roleId },
         success: function(response) {
             if (response.success) {
-                displayAssignedRoleMenus(response.data);
+                displayAssignedRoleMenuPermissions(response.data);
             } else {
                 showRolePermissionsModalAlert(response.error, 'error');
             }
@@ -511,44 +583,47 @@ function loadRoleMenus(roleId) {
     });
 }
 
-function displayAssignedRoleMenus(menus) {
+function displayAssignedRoleMenuPermissions(permissions) {
     var html = '';
-    if (menus.length === 0) {
+    if (permissions.length === 0) {
         html = `
             <div class="empty-state">
                 <i class="bi bi-list-ul"></i>
-                <p class="mb-0">Bu role atanmış menü bulunmuyor</p>
+                <p class="mb-0">Bu role atanmış menü yetkisi bulunmuyor</p>
             </div>
         `;
     } else {
-        menus.forEach(function(menu) {
+        permissions.forEach(function(permission) {
+            var permissionBadge = getPermissionBadgeClass(permission.PermissionLevel);
+            
             html += `
                 <div class="d-flex justify-content-between align-items-center p-3 bg-light border rounded mb-2">
                     <div class="menu-info">
                         <div class="d-flex align-items-center mb-1">
-                            <i class="${menu.icon || 'bi bi-circle'} text-primary me-2"></i>
-                            <span class="fw-bold">${menu.name}</span>
+                            <i class="${permission.MenuIcon || 'bi bi-circle'} text-primary me-2"></i>
+                            <span class="fw-bold">${permission.MenuName}</span>
+                            <span class="badge ${permissionBadge} ms-2">${permission.PermissionLevel}</span>
                         </div>
-                        <div class="menu-description">${menu.controller}/${menu.action || ''}</div>
+                        <div class="menu-description">${permission.MenuController}/${permission.MenuAction || ''}</div>
                     </div>
-                    <button class="btn btn-sm btn-outline-danger remove-role-menu" data-menu-id="${menu.id}" title="Yetkiyi Kaldır">
+                    <button class="btn btn-sm btn-outline-danger remove-role-menu-permission" data-permission-id="${permission.Id}" title="Yetkiyi Kaldır">
                         <i class="bi bi-x"></i>
                     </button>
                 </div>
             `;
         });
     }
-    $('#assignedRoleMenusList').html(html);
+    $('#assignedRoleMenuPermissionsList').html(html);
 }
 
-function loadAvailableMenusForRole(roleId, search = '') {
+function loadAvailableMenusForRolePermission(roleId, search = '') {
     $.ajax({
-        url: '/Role/GetAvailableMenusForRole',
+        url: '/Role/GetAvailableMenusForRolePermission',
         type: 'GET',
         data: { roleId: roleId, search: search },
         success: function(response) {
             if (response.success) {
-                displayAvailableRoleMenus(response.data);
+                displayAvailableMenusForRolePermission(response.data);
             } else {
                 showRolePermissionsModalAlert(response.error, 'error');
             }
@@ -559,7 +634,7 @@ function loadAvailableMenusForRole(roleId, search = '') {
     });
 }
 
-function displayAvailableRoleMenus(menus) {
+function displayAvailableMenusForRolePermission(menus) {
     var html = '';
     if (menus.length === 0) {
         html = '<div class="text-muted text-center py-3">Eklenecek menü bulunamadı</div>';
@@ -569,19 +644,30 @@ function displayAvailableRoleMenus(menus) {
                 <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
                     <div>
                         <div class="fw-bold">
-                            <i class="${menu.icon || 'bi bi-circle'} me-2"></i>
-                            ${menu.name}
+                            <i class="${menu.Icon || 'bi bi-circle'} me-2"></i>
+                            ${menu.Name}
                         </div>
-                        <small class="text-muted">${menu.controller}/${menu.action || ''}</small>
+                        <small class="text-muted">${menu.Controller}/${menu.Action || ''}</small>
                     </div>
-                    <button class="btn btn-sm btn-outline-success add-role-menu" data-menu-id="${menu.id}">
-                        <i class="bi bi-plus"></i>
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-success add-role-menu-permission" data-menu-id="${menu.Id}" data-permission-level="VIEW">
+                            <i class="bi bi-eye"></i> VIEW
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary add-role-menu-permission" data-menu-id="${menu.Id}" data-permission-level="CREATE">
+                            <i class="bi bi-plus"></i> CREATE
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning add-role-menu-permission" data-menu-id="${menu.Id}" data-permission-level="EDIT">
+                            <i class="bi bi-pencil"></i> EDIT
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger add-role-menu-permission" data-menu-id="${menu.Id}" data-permission-level="DELETE">
+                            <i class="bi bi-trash"></i> DELETE
+                        </button>
+                    </div>
                 </div>
             `;
         });
     }
-    $('#availableRoleMenusList').html(html);
+    $('#availableMenusForRolePermissionList').html(html);
 }
 
 function showRoleMenuModalAlert(message, type) {
@@ -598,6 +684,134 @@ function showRoleMenuModalAlert(message, type) {
         $('#roleMenuModalAlert').fadeOut();
     }, 3000);
 }
+
+// System Permissions Management Functions
+
+function loadRoleSystemPermissions(roleId) {
+    $.ajax({
+        url: '/Role/GetRoleSystemPermissions',
+        type: 'GET',
+        data: { roleId: roleId },
+        success: function(response) {
+            if (response.success) {
+                displayAssignedRoleSystemPermissions(response.data);
+            } else {
+                showRolePermissionsModalAlert(response.error, 'error');
+            }
+        },
+        error: function() {
+            showRolePermissionsModalAlert('Sistem yetkileri yüklenirken hata oluştu!', 'error');
+        }
+    });
+}
+
+function displayAssignedRoleSystemPermissions(permissions) {
+    var html = '';
+    if (!permissions || permissions.length === 0) {
+        html = `
+            <div class="empty-state">
+                <i class="bi bi-shield"></i>
+                <p class="mb-0">Bu role atanmış sistem yetkisi bulunmuyor</p>
+            </div>
+        `;
+    } else {
+        permissions.forEach(function(permission) {
+            var code = permission.code || permission.Code || 'UNKNOWN';
+            var name = permission.name || permission.Name || code;
+            var description = permission.description || permission.Description || '';
+            var id = permission.id || permission.Id;
+            var badgeClass = getPermissionBadgeClass(code);
+            html += `
+                <div class="d-flex justify-content-between align-items-center p-3 bg-light border rounded mb-2">
+                    <div class="permission-info">
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="badge ${badgeClass} me-2">${code}</span>
+                            <span class="fw-bold">${name}</span>
+                        </div>
+                        <div class="permission-description">${description}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger remove-system-permission" data-permission-id="${id}" title="Yetkiyi Kaldır">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+        });
+    }
+    $('#assignedRolePermissionsList').html(html);
+}
+
+function loadAvailableSystemPermissionsForRole(roleId, search = '') {
+    $.ajax({
+        url: '/Role/GetAvailableSystemPermissionsForRole',
+        type: 'GET',
+        data: { roleId: roleId, search: search },
+        success: function(response) {
+            if (response.success) {
+                displayAvailableRoleSystemPermissions(response.data);
+            } else {
+                showRolePermissionsModalAlert(response.error, 'error');
+            }
+        },
+        error: function() {
+            showRolePermissionsModalAlert('Mevcut sistem yetkileri yüklenirken hata oluştu!', 'error');
+        }
+    });
+}
+
+function displayAvailableRoleSystemPermissions(permissions) {
+    var html = '';
+    if (!permissions || permissions.length === 0) {
+        html = '<div class="text-muted text-center py-3">Eklenecek sistem yetkisi bulunamadı</div>';
+    } else {
+        permissions.forEach(function(permission) {
+            var code = permission.code || permission.Code || 'UNKNOWN';
+            var name = permission.name || permission.Name || code;
+            var description = permission.description || permission.Description || '';
+            var id = permission.id || permission.Id;
+            var badgeClass = getPermissionBadgeClass(code);
+            html += `
+                <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                    <div>
+                        <div class="fw-bold">
+                            <span class="badge ${badgeClass} me-2">${code}</span>
+                            ${name}
+                        </div>
+                        <small class="text-muted">${description}</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-success add-system-permission" data-permission-id="${id}">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+            `;
+        });
+    }
+    $('#availableRolePermissionsList').html(html);
+}
+
+function getPermissionBadgeClass(permissionCode) {
+    switch(permissionCode) {
+        case 'VIEW': return 'bg-primary';
+        case 'CREATE': return 'bg-success';
+        case 'EDIT': return 'bg-warning text-dark';
+        case 'UPDATE': return 'bg-warning text-dark';
+        case 'DELETE': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+
+// Reload correct lists on tab switch
+$(document).on('shown.bs.tab', 'button[data-bs-toggle="tab"]', function (e) {
+    var target = $(e.target).attr('data-bs-target');
+    var roleId = $('#rolePermissionsModal').data('role-id');
+    if (!roleId) return;
+    if (target === '#role-users') {
+        loadRoleUsers(roleId);
+        loadAvailableUsers(roleId);
+    } else if (target === '#role-menus') {
+        loadRoleMenuPermissions(roleId);
+        loadAvailableMenusForRolePermission(roleId);
+    }
+});
 
 // DataTable'ı yeniden başlat
 function refreshRoleDataTable() {

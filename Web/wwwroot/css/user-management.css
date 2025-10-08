@@ -1,0 +1,379 @@
+/* User Management DevExtreme DataGrid Styles */
+
+/* Basic, flat header style for DevExtreme grid */
+#usersDataGrid .dx-datagrid-headers {
+    background: #f8f9fa !important;
+}
+
+#usersDataGrid .dx-header-row .dx-datagrid-text-content {
+    color: #495057;
+    font-weight: 600;
+}
+
+#usersDataGrid .dx-datagrid-headers .dx-row > td {
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Prevent horizontal scrolling and optimize column spacing */
+#usersDataGrid {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+#usersDataGrid .dx-datagrid-rowsview {
+    overflow-x: hidden !important;
+}
+
+#usersDataGrid .dx-datagrid-headers {
+    overflow-x: hidden !important;
+}
+
+/* Compact column spacing */
+#usersDataGrid .dx-datagrid-headers .dx-header-row > td {
+    padding: 8px 4px !important;
+}
+
+#usersDataGrid .dx-datagrid-rowsview .dx-row > td {
+    padding: 6px 4px !important;
+}
+
+/* Action buttons styling */
+.dx-action-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.dx-action-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.dx-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.dx-action-btn-view {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.dx-action-btn-edit {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.dx-action-btn-delete {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.dx-action-btn-roles {
+    background: #e8f5e8;
+    color: #388e3c;
+}
+
+.dx-action-btn-permissions {
+    background: #fff8e1;
+    color: #f9a825;
+}
+
+/* Badge styling */
+.dx-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+}
+
+.dx-badge-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.dx-badge-danger {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    /* Action buttons on mobile */
+    .dx-action-buttons {
+        gap: 2px;
+    }
+    
+    .dx-action-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+    }
+    
+    /* DataGrid mobile adjustments */
+    #usersDataGrid .dx-datagrid-headers .dx-header-row > td {
+        padding: 4px 2px !important;
+        font-size: 0.75rem;
+    }
+    
+    #usersDataGrid .dx-datagrid-rowsview .dx-row > td {
+        padding: 4px 2px !important;
+        font-size: 0.75rem;
+    }
+    
+    /* Search panel mobile */
+    #usersDataGrid .dx-datagrid-search-panel {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 576px) {
+    /* Hide some columns on very small screens */
+    #usersDataGrid .dx-datagrid-headers .dx-header-row > td:nth-child(1),
+    #usersDataGrid .dx-datagrid-rowsview .dx-row > td:nth-child(1) {
+        display: none;
+    }
+}
+
+/* Loading spinner */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Empty state styling */
+.empty-state {
+    padding: 2rem 1rem;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* Role and menu item styling */
+.role-item, .menu-item {
+    transition: all 0.2s ease;
+}
+
+.role-item:hover, .menu-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Modal slide animation */
+.modal-dialog-slide {
+    transform: translateX(100%);
+    transition: transform 0.3s ease-out;
+}
+
+.modal-dialog-slide.show {
+    transform: translateX(0);
+}
+
+/* Modal slide animation from RIGHT - for permission modal */
+.modal-dialog-slide-right {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: 0;
+    height: 100vh;
+    max-width: 600px !important;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-out;
+}
+
+.modal-dialog-slide-right.show {
+    transform: translateX(0);
+}
+
+.modal-dialog-slide-right .modal-content {
+    height: 100%;
+    border-radius: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-dialog-slide-right .modal-body {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Responsive permission modal */
+@media (max-width: 768px) {
+    .modal-dialog-slide-right {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .modal-dialog-slide-right .modal-header h5 {
+        font-size: 1rem;
+    }
+    
+    .modal-dialog-slide-right .form-check {
+        padding: 0.5rem 0;
+    }
+}
+
+/* Modern modal styling */
+.modern-modal .modal-content {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.modern-modal .modal-header {
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.modern-modal .modal-footer {
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 0.75rem 0.75rem;
+}
+
+/* Avatar circle */
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+/* Responsive Design for User Management */
+@media (max-width: 768px) {
+    /* Mobile adjustments */
+    .d-flex.gap-2
+
+{
+    flex-direction: column;
+    gap: 0.5rem !important;
+}
+
+.d-flex.gap-2 .btn {
+    width: 100%;
+    margin-bottom: 0.25rem;
+}
+
+/* Modal adjustments for mobile */
+.modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+}
+
+.modal-dialog-slide {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+}
+
+/* Card adjustments */
+.card-body {
+    padding: 0.75rem;
+}
+
+/* Avatar adjustments */
+.avatar-circle {
+    width: 32px !important;
+    height: 32px !important;
+}
+
+/* Button adjustments */
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+}
+
+@media (max-width: 576px) {
+    /* Extra small devices */
+    .modal-dialog {
+        margin: 0.25rem;
+        max-width: calc(100% - 0.5rem);
+    }
+
+    .modal-dialog-slide {
+        margin: 0.25rem;
+        max-width: calc(100% - 0.5rem);
+    }
+
+    .card-body {
+        padding: 0.5rem;
+    }
+
+    .btn {
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    .btn-sm {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    /* Large screens - Make modals wider for better usability */
+    .modal-dialog-slide {
+        max-width: 70% !important;
+    }
+
+    .modal-xl {
+        max-width: 95% !important;
+    }
+}
+
+/* Improved Modal Responsiveness - Much Wider Modals */
+.modal-dialog-slide {
+    max-width: 85% !important;
+}
+
+@media (min-width: 992px) {
+    .modal-dialog-slide {
+        max-width: 90% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .modal-dialog-slide {
+        max-width: 85% !important;
+    }
+}
+
+/* Better spacing for role management modal */
+.role-management-modal .modal-body {
+    padding: 1.5rem;
+}
+
+.role-management-modal .card-body {
+    padding: 1rem;
+}
+
+.role-management-modal .role-item {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.role-management-modal .role-info {
+    min-width: 0;
+}
+
+.role-management-modal .role-description {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}

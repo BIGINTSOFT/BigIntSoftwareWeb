@@ -14,10 +14,10 @@ $(document).ready(function() {
             }
         },
         "columns": [
-            { "data": "id" },
-            { "data": "name" },
+            { "data": "Id" },
+            { "data": "Name" },
             { 
-                "data": "icon",
+                "data": "Icon",
                 "render": function(data, type, row) {
                     return data ? `<i class="${data}"></i> ${data}` : '-';
                 }
@@ -25,20 +25,20 @@ $(document).ready(function() {
             { 
                 "data": null,
                 "render": function(data, type, row) {
-                    var controller = row.controller || '';
-                    var action = row.action || '';
+                    var controller = row.Controller || '';
+                    var action = row.Action || '';
                     return controller && action ? `${controller}/${action}` : '-';
                 }
             },
             { 
-                "data": "parentId",
+                "data": "ParentId",
                 "render": function(data, type, row) {
                     return data ? `Menü ID: ${data}` : 'Ana Menü';
                 }
             },
-            { "data": "sortOrder" },
+            { "data": "SortOrder" },
             { 
-                "data": "isActive",
+                "data": "IsActive",
                 "render": function(data, type, row) {
                     return data ? 
                         '<span class="badge bg-success">Aktif</span>' : 
@@ -50,7 +50,7 @@ $(document).ready(function() {
                 "orderable": false,
                 "render": function(data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-outline-info view-permissions" data-id="${row.id}" title="Yetkileri Görüntüle">
+                        <button class="btn btn-sm btn-outline-info view-permissions" data-id="${row.Id}" title="Yetkileri Görüntüle">
                             <i class="bi bi-shield-check"></i>
                         </button>
                     `;
@@ -62,10 +62,10 @@ $(document).ready(function() {
                 "render": function(data, type, row) {
                     return `
                         <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-primary edit-menu" data-id="${row.id}">
+                            <button class="btn btn-sm btn-outline-primary edit-menu" data-id="${row.Id}">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger delete-menu" data-id="${row.id}">
+                            <button class="btn btn-sm btn-outline-danger delete-menu" data-id="${row.Id}">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
@@ -121,15 +121,15 @@ $(document).ready(function() {
                 if (response.success) {
                     var data = response.data;
                     $('#menuModalLabel').text('Menü Düzenle');
-                    $('#menuId').val(data.id);
-                    $('#menuName').val(data.name);
-                    $('#menuDescription').val(data.description);
-                    $('#menuIcon').val(data.icon);
-                    $('#menuController').val(data.controller);
-                    $('#menuAction').val(data.action);
-                    $('#menuSortOrder').val(data.sortOrder);
-                    $('#menuIsActive').prop('checked', data.isActive);
-                    $('#menuIsVisible').prop('checked', data.isVisible);
+                    $('#menuId').val(data.Id);
+                    $('#menuName').val(data.Name);
+                    $('#menuDescription').val(data.Description);
+                    $('#menuIcon').val(data.Icon);
+                    $('#menuController').val(data.Controller);
+                    $('#menuAction').val(data.Action);
+                    $('#menuSortOrder').val(data.SortOrder);
+                    $('#menuIsActive').prop('checked', data.IsActive);
+                    $('#menuIsVisible').prop('checked', data.IsVisible);
                     $('#menuModal').modal('show');
                     console.log('✅ Menu edit form populated');
                 } else {
@@ -255,18 +255,18 @@ $(document).ready(function() {
     }
 
     function displayMenuInfo(menu) {
-        $('#modalMenuName').text(menu.name || '-');
+        $('#modalMenuName').text(menu.Name || '-');
         var controllerAction = '';
-        if (menu.controller && menu.action) {
-            controllerAction = `${menu.controller}/${menu.action}`;
-        } else if (menu.controller) {
-            controllerAction = menu.controller;
+        if (menu.Controller && menu.Action) {
+            controllerAction = `${menu.Controller}/${menu.Action}`;
+        } else if (menu.Controller) {
+            controllerAction = menu.Controller;
         } else {
             controllerAction = '-';
         }
         $('#modalMenuControllerAction').text(controllerAction);
         
-        var statusBadge = menu.isActive ? 
+        var statusBadge = menu.IsActive ? 
             '<span class="badge bg-success">Aktif</span>' : 
             '<span class="badge bg-danger">Pasif</span>';
         $('#modalMenuStatus').html(statusBadge);
@@ -287,41 +287,25 @@ $(document).ready(function() {
         }, 3000);
     }
 
-    // User Permissions Tab
+    // User Permissions Tab - Yeni ERP yapısında bu endpoint'ler yok, sadece bilgi gösterimi
     function loadMenuUserPermissions(menuId) {
-        $.ajax({
-            url: '/Menu/GetMenuUserPermissions',
-            type: 'GET',
-            data: { menuId: menuId },
-            success: function(response) {
-                if (response.success) {
-                    displayAssignedUserPermissions(response.data);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Kullanıcı yetkileri yüklenirken hata oluştu!', 'error');
-            }
-        });
+        // Yeni ERP yapısında kullanıcılar direkt menü yetkisi almaz, rol üzerinden alır
+        $('#assignedUsersPermissionsList').html(`
+            <div class="empty-state">
+                <i class="bi bi-info-circle"></i>
+                <p class="mb-0">Yeni ERP yapısında kullanıcılar rol üzerinden menü yetkisi alır</p>
+            </div>
+        `);
     }
 
     function loadAvailableUsersForMenuPermission(menuId, search = '') {
-        $.ajax({
-            url: '/Menu/GetAvailableUsersForMenuPermission',
-            type: 'GET',
-            data: { menuId: menuId, search: search },
-            success: function(response) {
-                if (response.success) {
-                    displayAvailableUserPermissions(response.data);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Kullanıcılar yüklenirken hata oluştu!', 'error');
-            }
-        });
+        // Yeni ERP yapısında kullanıcılar direkt menü yetkisi almaz
+        $('#availableUsersPermissionsList').html(`
+            <div class="empty-state">
+                <i class="bi bi-info-circle"></i>
+                <p class="mb-0">Kullanıcılara rol atayarak menü yetkisi verin</p>
+            </div>
+        `);
     }
 
     function displayAssignedUserPermissions(users) {
@@ -404,41 +388,25 @@ $(document).ready(function() {
         $('#availableUsersPermissionsList').html(html);
     }
 
-    // Role Permissions Tab
+    // Role Permissions Tab - Yeni ERP yapısında bu endpoint'ler yok, sadece bilgi gösterimi
     function loadMenuRolePermissions(menuId) {
-        $.ajax({
-            url: '/Menu/GetMenuRolePermissions',
-            type: 'GET',
-            data: { menuId: menuId },
-            success: function(response) {
-                if (response.success) {
-                    displayAssignedRolePermissions(response.data);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Rol yetkileri yüklenirken hata oluştu!', 'error');
-            }
-        });
+        // Yeni ERP yapısında menüler rol yetkileri RoleController'da yönetilir
+        $('#assignedRolesPermissionsList').html(`
+            <div class="empty-state">
+                <i class="bi bi-info-circle"></i>
+                <p class="mb-0">Menü yetkileri Rol Yönetimi sayfasından yönetilir</p>
+            </div>
+        `);
     }
 
     function loadAvailableRolesForMenuPermission(menuId, search = '') {
-        $.ajax({
-            url: '/Menu/GetAvailableRolesForMenuPermission',
-            type: 'GET',
-            data: { menuId: menuId, search: search },
-            success: function(response) {
-                if (response.success) {
-                    displayAvailableRolePermissions(response.data);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Roller yüklenirken hata oluştu!', 'error');
-            }
-        });
+        // Yeni ERP yapısında menü yetkileri RoleController'da yönetilir
+        $('#availableRolesPermissionsList').html(`
+            <div class="empty-state">
+                <i class="bi bi-info-circle"></i>
+                <p class="mb-0">Rol Yönetimi sayfasından menü yetkilerini yönetin</p>
+            </div>
+        `);
     }
 
     function displayAssignedRolePermissions(roles) {

@@ -1,7 +1,7 @@
-using DataAccess.DbContext;
-using Entities.Entity;
-using Bussiness.Repository.Abstract;
 using Microsoft.EntityFrameworkCore;
+using DataAccess.DbContext;
+using Bussiness.Repository.Abstract;
+using Entities.Entity;
 
 namespace Bussiness.Repository.Concrete
 {
@@ -11,235 +11,29 @@ namespace Bussiness.Repository.Concrete
         {
         }
 
-        public async Task<Role?> GetByNameAsync(string name)
-        {
-            return await GetFirstOrDefaultAsync(r => r.Name == name);
-        }
+        #region Rol-Menü İşlemleri
 
-        public async Task<IEnumerable<Role>> GetActiveRolesAsync()
-        {
-            return await GetWhereAsync(r => r.IsActive);
-        }
-
-        public async Task<IEnumerable<Role>> GetUserRolesAsync(int userId)
-        {
-            return await _context.UserRoles
-                .Where(ur => ur.UserId == userId && ur.IsActive)
-                .Include(ur => ur.Role)
-                .Select(ur => ur.Role)
-                .ToListAsync();
-        }
-
-        public async Task<bool> AssignRoleToUserAsync(int userId, int roleId)
+        public async Task<bool> AssignMenuToRoleAsync(int roleId, int menuId, int assignedBy, string? notes = null)
         {
             try
             {
-                var existingUserRole = await _context.UserRoles
-                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
+                var existing = await _context.RoleMenus
+                    .FirstOrDefaultAsync(rm => rm.RoleId == roleId && rm.MenuId == menuId);
 
-                if (existingUserRole != null)
-                {
-                    existingUserRole.IsActive = true;
-                    existingUserRole.AssignedDate = DateTime.Now;
-                }
-                else
-                {
-                    var userRole = new UserRole
-                    {
-                        UserId = userId,
-                        RoleId = roleId,
-                        AssignedDate = DateTime.Now,
-                        IsActive = true
-                    };
-                    _context.UserRoles.Add(userRole);
-                }
+                if (existing != null)
+                    return false;
 
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> RemoveRoleFromUserAsync(int userId, int roleId)
-        {
-            try
-            {
-                var userRole = await _context.UserRoles
-                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
-
-                if (userRole != null)
-                {
-                    userRole.IsActive = false;
-                    await _context.SaveChangesAsync();
-                }
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        // Menu Permission Management
-        public async Task<IEnumerable<Role>> GetRolesByMenuIdAsync(int menuId)
-        {
-            return await _context.RolePermissions
-                .Where(rp => rp.MenuId == menuId && rp.IsActive)
-                .Include(rp => rp.Role)
-                .Select(rp => rp.Role)
-                .Where(r => r.IsActive)
-                .Distinct()
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<Role>> GetAvailableRolesForMenuPermissionAsync(int menuId, string search = "")
-        {
-            var query = _context.Roles.Where(r => r.IsActive && 
-                                                 !r.RolePermissions.Any(rp => rp.MenuId == menuId && rp.IsActive));
-            
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(r => r.Name.Contains(search) || r.Description.Contains(search));
-            }
-            
-            return await query.ToListAsync();
-        }
-
-        public async Task<bool> AssignRoleToMenuAsync(int roleId, int menuId)
-        {
-            try
-            {
-                var existingRolePermission = await _context.RolePermissions
-                    .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.MenuId == menuId);
-
-                if (existingRolePermission != null)
-                {
-                    return false; // Already assigned
-                }
-
-                var rolePermission = new RolePermission
+                var roleMenu = new RoleMenu
                 {
                     RoleId = roleId,
                     MenuId = menuId,
-                    AssignedDate = DateTime.Now
+                    AssignedBy = assignedBy,
+                    AssignedDate = DateTime.Now,
+                    IsActive = true,
+                    Notes = notes
                 };
 
-                _context.RolePermissions.Add(rolePermission);
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> RemoveRoleFromMenuAsync(int roleId, int menuId)
-        {
-            try
-            {
-                var rolePermission = await _context.RolePermissions
-                    .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.MenuId == menuId);
-
-                if (rolePermission == null)
-                {
-                    return false; // Not assigned
-                }
-
-                _context.RolePermissions.Remove(rolePermission);
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        // User Role Management
-        public async Task<IEnumerable<Role>> GetAvailableRolesForUserAsync(int userId, string search = "")
-        {
-            var query = _context.Roles.Where(r => !r.UserRoles.Any(ur => ur.UserId == userId));
-            
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(r => r.Name.Contains(search) || r.Description.Contains(search));
-            }
-            
-            return await query.ToListAsync();
-        }
-
-        // Role Menu Management
-        public async Task<IEnumerable<Menu>> GetRoleMenusAsync(int roleId)
-        {
-            return await _context.RolePermissions
-                .Where(rp => rp.RoleId == roleId && rp.IsActive && rp.MenuId.HasValue)
-                .Select(rp => rp.Menu!)
-                .Where(m => m.IsActive && m.IsVisible)
-                .Distinct()
-                .OrderBy(m => m.SortOrder)
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<Menu>> GetAvailableMenusForRoleAsync(int roleId, string search = "")
-        {
-            // Bu role atanmış menüleri al
-            var assignedMenuIds = (await _context.RolePermissions
-                .Where(rp => rp.RoleId == roleId && rp.IsActive && rp.MenuId.HasValue)
-                .Select(rp => rp.MenuId!.Value)
-                .ToListAsync()).ToHashSet();
-
-            // Atanmamış menüleri getir
-            var query = _context.Menus.Where(m => !assignedMenuIds.Contains(m.Id));
-            
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(m => m.Name.Contains(search) || 
-                                       (m.Description != null && m.Description.Contains(search)));
-            }
-            
-            return await query.Where(m => m.IsActive && m.IsVisible)
-                .Distinct()
-                .OrderBy(m => m.SortOrder)
-                .ToListAsync();
-        }
-
-        public async Task<bool> AssignMenuToRoleAsync(int roleId, int menuId)
-        {
-            try
-            {
-                // Önce aktif kayıt var mı kontrol et
-                var existingActiveAssignment = await _context.RolePermissions
-                    .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.MenuId == menuId && rp.IsActive);
-                
-                if (existingActiveAssignment != null) return false; // Zaten aktif
-
-                // Inactive kayıt var mı kontrol et
-                var existingInactiveAssignment = await _context.RolePermissions
-                    .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.MenuId == menuId && !rp.IsActive);
-                
-                if (existingInactiveAssignment != null)
-                {
-                    // Inactive kaydı aktif yap
-                    existingInactiveAssignment.IsActive = true;
-                    existingInactiveAssignment.AssignedDate = DateTime.Now;
-                }
-                else
-                {
-                    // Yeni kayıt oluştur
-                    var rolePermission = new RolePermission
-                    {
-                        RoleId = roleId,
-                        MenuId = menuId,
-                        AssignedDate = DateTime.Now,
-                        IsActive = true
-                    };
-                    _context.RolePermissions.Add(rolePermission);
-                }
-
+                _context.RoleMenus.Add(roleMenu);
                 await _context.SaveChangesAsync();
                 return true;
             }
@@ -253,19 +47,13 @@ namespace Bussiness.Repository.Concrete
         {
             try
             {
-                // Tüm aktif kayıtları bul ve soft delete yap
-                var rolePermissions = await _context.RolePermissions
-                    .Where(rp => rp.RoleId == roleId && rp.MenuId == menuId && rp.IsActive)
-                    .ToListAsync();
-                
-                if (!rolePermissions.Any()) return false;
+                var roleMenu = await _context.RoleMenus
+                    .FirstOrDefaultAsync(rm => rm.RoleId == roleId && rm.MenuId == menuId);
 
-                // Tüm kayıtları soft delete yap
-                foreach (var rolePermission in rolePermissions)
-                {
-                    rolePermission.IsActive = false;
-                }
-                
+                if (roleMenu == null)
+                    return false;
+
+                _context.RoleMenus.Remove(roleMenu);
                 await _context.SaveChangesAsync();
                 return true;
             }
@@ -274,5 +62,236 @@ namespace Bussiness.Repository.Concrete
                 return false;
             }
         }
+
+        public async Task<List<Menu>> GetRoleMenusAsync(int roleId)
+        {
+            return await _context.RoleMenus
+                .Where(rm => rm.RoleId == roleId && rm.IsActive)
+                .Include(rm => rm.Menu)
+                .Select(rm => rm.Menu)
+                .ToListAsync();
+        }
+
+        #endregion
+
+        #region Rol-Menü-İzin İşlemleri
+
+        public async Task<bool> AssignMenuPermissionToRoleAsync(int roleId, int menuId, int permissionId, string permissionLevel, int assignedBy, string? notes = null)
+        {
+            try
+            {
+                var existing = await _context.RoleMenuPermissions
+                    .FirstOrDefaultAsync(rmp => rmp.RoleId == roleId && rmp.MenuId == menuId && rmp.PermissionId == permissionId);
+
+                if (existing != null)
+                    return false;
+
+                var roleMenuPermission = new RoleMenuPermission
+                {
+                    RoleId = roleId,
+                    MenuId = menuId,
+                    PermissionId = permissionId,
+                    PermissionLevel = permissionLevel,
+                    AssignedBy = assignedBy,
+                    AssignedDate = DateTime.Now,
+                    IsActive = true,
+                    Notes = notes
+                };
+
+                _context.RoleMenuPermissions.Add(roleMenuPermission);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> RemoveMenuPermissionFromRoleAsync(int roleId, int menuId, int permissionId)
+        {
+            try
+            {
+                var roleMenuPermission = await _context.RoleMenuPermissions
+                    .FirstOrDefaultAsync(rmp => rmp.RoleId == roleId && rmp.MenuId == menuId && rmp.PermissionId == permissionId);
+
+                if (roleMenuPermission == null)
+                    return false;
+
+                _context.RoleMenuPermissions.Remove(roleMenuPermission);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateRoleMenuPermissionAsync(int roleId, int menuId, int permissionId, string newPermissionLevel, int assignedBy, string? notes = null)
+        {
+            try
+            {
+                var roleMenuPermission = await _context.RoleMenuPermissions
+                    .FirstOrDefaultAsync(rmp => rmp.RoleId == roleId && rmp.MenuId == menuId && rmp.PermissionId == permissionId);
+
+                if (roleMenuPermission == null)
+                    return false;
+
+                roleMenuPermission.PermissionLevel = newPermissionLevel;
+                roleMenuPermission.AssignedBy = assignedBy;
+                roleMenuPermission.Notes = notes;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<List<RoleMenuPermission>> GetRoleMenuPermissionsAsync(int roleId)
+        {
+            return await _context.RoleMenuPermissions
+                .Where(rmp => rmp.RoleId == roleId && rmp.IsActive)
+                .Include(rmp => rmp.Menu)
+                .Include(rmp => rmp.Permission)
+                .ToListAsync();
+        }
+
+        public async Task<List<RoleMenuPermission>> GetRoleMenuPermissionsByMenuAsync(int roleId, int menuId)
+        {
+            return await _context.RoleMenuPermissions
+                .Where(rmp => rmp.RoleId == roleId && rmp.MenuId == menuId && rmp.IsActive)
+                .Include(rmp => rmp.Permission)
+                .ToListAsync();
+        }
+
+        public async Task<RoleMenuPermission?> GetRoleMenuPermissionAsync(int roleId, int menuId, int permissionId)
+        {
+            return await _context.RoleMenuPermissions
+                .Include(rmp => rmp.Menu)
+                .Include(rmp => rmp.Permission)
+                .FirstOrDefaultAsync(rmp => rmp.RoleId == roleId && rmp.MenuId == menuId && rmp.PermissionId == permissionId);
+        }
+
+        #endregion
+
+        #region Rol Kullanıcıları
+
+        public async Task<List<User>> GetRoleUsersAsync(int roleId)
+        {
+            return await _context.UserRoles
+                .Where(ur => ur.RoleId == roleId && ur.IsActive)
+                .Include(ur => ur.User)
+                .Select(ur => ur.User)
+                .ToListAsync();
+        }
+
+        public async Task<int> GetRoleUserCountAsync(int roleId)
+        {
+            return await _context.UserRoles.CountAsync(ur => ur.RoleId == roleId && ur.IsActive);
+        }
+
+        #endregion
+
+        #region Rol Arama ve Filtreleme
+
+        public async Task<List<Role>> GetAvailableRolesForUserAsync(int userId, string? search = null)
+        {
+            var query = _context.Roles
+                .Where(r => r.IsActive && !r.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive));
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(r => r.Name.Contains(search) || r.Description.Contains(search));
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<Role>> GetAvailableRolesForMenuAsync(int menuId, string? search = null)
+        {
+            var query = _context.Roles
+                .Where(r => r.IsActive && !r.RoleMenus.Any(rm => rm.MenuId == menuId && rm.IsActive));
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(r => r.Name.Contains(search) || r.Description.Contains(search));
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<Role>> SearchRolesAsync(string searchTerm)
+        {
+            return await _context.Roles
+                .Where(r => r.Name.Contains(searchTerm) || r.Description.Contains(searchTerm))
+                .ToListAsync();
+        }
+
+        public async Task<List<Role>> GetActiveRolesAsync()
+        {
+            return await _context.Roles
+                .Where(r => r.IsActive)
+                .ToListAsync();
+        }
+
+        #endregion
+
+        #region Rol Bilgileri
+
+        public async Task<Role?> GetRoleWithMenusAsync(int roleId)
+        {
+            return await _context.Roles
+                .Include(r => r.RoleMenus)
+                    .ThenInclude(rm => rm.Menu)
+                .FirstOrDefaultAsync(r => r.Id == roleId);
+        }
+
+        public async Task<Role?> GetRoleWithPermissionsAsync(int roleId)
+        {
+            return await _context.Roles
+                .Include(r => r.RoleMenuPermissions)
+                    .ThenInclude(rmp => rmp.Menu)
+                .Include(r => r.RoleMenuPermissions)
+                    .ThenInclude(rmp => rmp.Permission)
+                .FirstOrDefaultAsync(r => r.Id == roleId);
+        }
+
+        public async Task<Role?> GetRoleWithUsersAsync(int roleId)
+        {
+            return await _context.Roles
+                .Include(r => r.UserRoles)
+                    .ThenInclude(ur => ur.User)
+                .FirstOrDefaultAsync(r => r.Id == roleId);
+        }
+
+        #endregion
+
+        #region Rol İstatistikleri
+
+        public async Task<int> GetRoleCountAsync()
+        {
+            return await _context.Roles.CountAsync();
+        }
+
+        public async Task<int> GetActiveRoleCountAsync()
+        {
+            return await _context.Roles.CountAsync(r => r.IsActive);
+        }
+
+        public async Task<int> GetRoleMenuCountAsync(int roleId)
+        {
+            return await _context.RoleMenus.CountAsync(rm => rm.RoleId == roleId && rm.IsActive);
+        }
+
+        public async Task<int> GetRolePermissionCountAsync(int roleId)
+        {
+            return await _context.RoleMenuPermissions.CountAsync(rmp => rmp.RoleId == roleId && rmp.IsActive);
+        }
+
+        #endregion
     }
 }

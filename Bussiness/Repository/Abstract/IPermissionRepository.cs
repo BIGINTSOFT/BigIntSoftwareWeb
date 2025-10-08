@@ -4,26 +4,41 @@ namespace Bussiness.Repository.Abstract
 {
     public interface IPermissionRepository : IGenericRepository<Permission>
     {
-        Task<Permission?> GetByCodeAsync(string code);
-        Task<IEnumerable<Permission>> GetActivePermissionsAsync();
-        Task<IEnumerable<Permission>> GetUserPermissionsAsync(int userId);
-        Task<IEnumerable<Permission>> GetRolePermissionsAsync(int roleId);
-        Task<bool> HasPermissionAsync(int userId, string permissionCode, int? menuId = null);
-        Task<IEnumerable<string>> GetUserPermissionCodesAsync(int userId, int? menuId = null);
-        Task<bool> HasAnyPermissionAsync(int userId, IEnumerable<string> permissionCodes, int? menuId = null);
+        // Yetki Seviyeleri
+        Task<List<Permission>> GetStandardPermissionsAsync();
+        Task<List<string>> GetPermissionLevelsAsync();
+        Task<List<Permission>> GetActivePermissionsAsync();
         
-        // Permission-Role Management
-        Task<IEnumerable<Permission>> GetAvailablePermissionsForRoleAsync(int roleId, int? menuId = null, string search = "");
-        Task<bool> AssignPermissionToRoleAsync(int roleId, int permissionId, int? menuId = null);
-        Task<bool> RemovePermissionFromRoleAsync(int roleId, int permissionId, int? menuId = null);
+        // Yetki Kontrolü
+        Task<bool> IsValidPermissionLevelAsync(string permissionLevel);
+        Task<Permission?> GetPermissionByCodeAsync(string code);
+        Task<bool> HasPermissionAsync(int userId, int menuId, string permissionLevel);
         
-        // Permission-User Management
-        Task<IEnumerable<Permission>> GetAvailablePermissionsForUserAsync(int userId, int? menuId = null, string search = "");
-        Task<bool> AssignPermissionToUserAsync(int userId, int permissionId, int? menuId = null);
-        Task<bool> RemovePermissionFromUserAsync(int userId, int permissionId, int? menuId = null);
+        // Kullanıcı Yetki İşlemleri
+        Task<List<UserMenuPermission>> GetUserPermissionsAsync(int userId);
+        Task<List<UserMenuPermission>> GetUserPermissionsByMenuAsync(int userId, int menuId);
+        Task<List<string>> GetUserPermissionCodesAsync(int userId);
         
-        // Get entities that have specific permission
-        Task<IEnumerable<Role>> GetRolesByPermissionIdAsync(int permissionId);
-        Task<IEnumerable<User>> GetUsersByPermissionIdAsync(int permissionId);
+        // Rol Yetki İşlemleri
+        Task<List<RoleMenuPermission>> GetRolePermissionsAsync(int roleId);
+        Task<List<RoleMenuPermission>> GetRolePermissionsByMenuAsync(int roleId, int menuId);
+        
+        // Yetki İstatistikleri
+        Task<Dictionary<string, int>> GetPermissionUsageStatsAsync();
+        Task<int> GetPermissionUsageCountAsync(string permissionLevel);
+        Task<int> GetUserPermissionCountAsync(int userId);
+        Task<int> GetRolePermissionCountAsync(int roleId);
+        Task<int> GetMenuPermissionCountAsync(int menuId);
+        Task<int> GetPermissionUserMenuCountAsync(int permissionId);
+        Task<int> GetPermissionRoleMenuCountAsync(int permissionId);
+        
+        // Yetki Arama
+        Task<List<Permission>> SearchPermissionsAsync(string searchTerm);
+        Task<List<Permission>> GetPermissionsByLevelAsync(string permissionLevel);
+        
+        // Yetki Kullanım Analizi
+        Task<List<UserMenuPermission>> GetPermissionUsageByUserAsync(int userId);
+        Task<List<RoleMenuPermission>> GetPermissionUsageByRoleAsync(int roleId);
+        Task<List<UserMenuPermission>> GetPermissionUsageByMenuAsync(int menuId);
     }
 }

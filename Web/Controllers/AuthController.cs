@@ -36,6 +36,7 @@ namespace Web.Controllers
             }
 
             var user = await _userRepository.LoginAsync(loginDto.Username, loginDto.Password);
+            
             if (user == null)
             {
                 ModelState.AddModelError("", "Kullanıcı adı veya şifre hatalı!");
@@ -47,8 +48,8 @@ namespace Web.Controllers
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim("FirstName", user.FirstName),
-                new Claim("LastName", user.LastName)
+                new Claim("FirstName", user.FirstName ?? ""),
+                new Claim("LastName", user.LastName ?? "")
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

@@ -1,7 +1,7 @@
-using DataAccess.DbContext;
-using Entities.Entity;
-using Bussiness.Repository.Abstract;
 using Microsoft.EntityFrameworkCore;
+using DataAccess.DbContext;
+using Bussiness.Repository.Abstract;
+using Entities.Entity;
 
 namespace Bussiness.Repository.Concrete
 {
@@ -11,139 +11,30 @@ namespace Bussiness.Repository.Concrete
         {
         }
 
-        public async Task<User?> GetByUsernameAsync(string username)
-        {
-            return await GetFirstOrDefaultAsync(u => u.Username == username);
-        }
+        #region Kullanıcı-Rol İşlemleri
 
-        public async Task<User?> GetByEmailAsync(string email)
-        {
-            return await GetFirstOrDefaultAsync(u => u.Email == email);
-        }
-
-        public async Task<User?> GetByUsernameOrEmailAsync(string usernameOrEmail)
-        {
-            return await GetFirstOrDefaultAsync(u => u.Username == usernameOrEmail || u.Email == usernameOrEmail);
-        }
-
-        public async Task<User?> LoginAsync(string usernameOrEmail, string password)
-        {
-            var user = await GetByUsernameOrEmailAsync(usernameOrEmail);
-            
-            if (user == null || !user.IsActive)
-                return null;
-
-            if (ValidatePassword(password, user.Password))
-            {
-                user.LastLoginDate = DateTime.Now;
-                await UpdateAsync(user);
-                return user;
-            }
-
-            return null;
-        }
-
-        private bool ValidatePassword(string inputPassword, string hashedPassword)
-        {
-            // Hash karşılaştırması
-            return HashPassword(inputPassword) == hashedPassword;
-        }
-
-        private string HashPassword(string password)
-        {
-            using (var sha256 = System.Security.Cryptography.SHA256.Create())
-            {
-                var hashedBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
-                return Convert.ToBase64String(hashedBytes);
-            }
-        }
-
-        // Role Management
-        public async Task<IEnumerable<User>> GetUsersByRoleIdAsync(int roleId)
-        {
-            return await _context.Users
-                .Where(u => u.IsActive && u.UserRoles.Any(ur => ur.RoleId == roleId && ur.IsActive))
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<User>> GetAvailableUsersForRoleAsync(int roleId, string search = "")
-        {
-            // Sadece aktif kullanıcıları al ve bu role atanmamış olanları filtrele
-            var query = _context.Users.Where(u => u.IsActive && 
-                                                 !u.UserRoles.Any(ur => ur.RoleId == roleId && ur.IsActive));
-            
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(u => u.Username.Contains(search) || 
-                                       u.FirstName.Contains(search) || 
-                                       u.LastName.Contains(search) || 
-                                       u.Email.Contains(search));
-            }
-            
-            return await query.ToListAsync();
-        }
-
-        public async Task<bool> AssignUserToRoleAsync(int userId, int roleId)
+        public async Task<bool> AssignRoleToUserAsync(int userId, int roleId, int assignedBy, string? notes = null)
         {
             try
             {
-                // Check if user exists and is active
-                var userExists = await _context.Users
-                    .AnyAsync(u => u.Id == userId && u.IsActive);
-                if (!userExists) return false;
+                // Zaten atanmış mı kontrol et
+                var existing = await _context.UserRoles
+                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
 
-                // Check if already assigned (active assignment)
-                var existingActiveAssignment = await _context.UserRoles
-                    .AnyAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.IsActive);
-                if (existingActiveAssignment) return false;
+                if (existing != null)
+                    return false; // Zaten atanmış
 
-                // Check if there's an inactive assignment (soft deleted) - reactivate it
-                var existingInactiveAssignment = await _context.UserRoles
-                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId && !ur.IsActive);
-                
-                if (existingInactiveAssignment != null)
+                var userRole = new UserRole
                 {
-                    // Reactivate the existing assignment
-                    existingInactiveAssignment.IsActive = true;
-                    existingInactiveAssignment.AssignedDate = DateTime.Now;
-                    await _context.SaveChangesAsync();
-                    return true;
-                }
-                else
-                {
-                    // Create new assignment
-                    var userRole = new UserRole
-                    {
-                        UserId = userId,
-                        RoleId = roleId,
-                        AssignedDate = DateTime.Now,
-                        IsActive = true
-                    };
+                    UserId = userId,
+                    RoleId = roleId,
+                    AssignedBy = assignedBy,
+                    AssignedDate = DateTime.Now,
+                    IsActive = true,
+                    Notes = notes
+                };
 
-                    _context.UserRoles.Add(userRole);
-                    await _context.SaveChangesAsync();
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log the exception for debugging
-                Console.WriteLine($"AssignUserToRoleAsync Error: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<bool> RemoveUserFromRoleAsync(int userId, int roleId)
-        {
-            try
-            {
-                var userRole = await _context.UserRoles
-                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.IsActive);
-                if (userRole == null) return false;
-
-                // Soft delete - set IsActive to false
-                userRole.IsActive = false;
-                
+                _context.UserRoles.Add(userRole);
                 await _context.SaveChangesAsync();
                 return true;
             }
@@ -153,65 +44,71 @@ namespace Bussiness.Repository.Concrete
             }
         }
 
-        // Permission Management
-        public async Task<IEnumerable<User>> GetUsersByMenuIdAsync(int menuId)
-        {
-            return await GetWhereAsync(u => u.UserPermissions.Any(up => up.MenuId == menuId));
-        }
-
-        public async Task<IEnumerable<User>> GetAvailableUsersForMenuPermissionAsync(int menuId, string search = "")
-        {
-            // Kullanıcının bu menüye direkt yetkisi var mı kontrol et
-            var usersWithDirectPermission = _context.Users
-                .Where(u => u.UserPermissions.Any(up => up.MenuId == menuId && up.IsActive))
-                .Select(u => u.Id)
-                .ToHashSet();
-
-            // Kullanıcının bu menüye rol bazlı yetkisi var mı kontrol et
-            var usersWithRolePermission = _context.UserRoles
-                .Where(ur => ur.IsActive)
-                .SelectMany(ur => ur.Role.RolePermissions)
-                .Where(rp => rp.MenuId == menuId && rp.IsActive)
-                .Select(rp => rp.Role.UserRoles.Where(ur => ur.IsActive).Select(ur => ur.UserId))
-                .SelectMany(userIds => userIds)
-                .ToHashSet();
-
-            // Hem direkt hem rol bazlı yetkisi olmayan kullanıcıları getir
-            var query = _context.Users.Where(u => u.IsActive && 
-                                                 !usersWithDirectPermission.Contains(u.Id) && 
-                                                 !usersWithRolePermission.Contains(u.Id));
-            
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(u => u.Username.Contains(search) || 
-                                       u.FirstName.Contains(search) || 
-                                       u.LastName.Contains(search) || 
-                                       u.Email.Contains(search));
-            }
-            
-            return await query.ToListAsync();
-        }
-
-        public async Task<bool> AssignUserToMenuAsync(int userId, int menuId)
+        public async Task<bool> RemoveRoleFromUserAsync(int userId, int roleId)
         {
             try
             {
-                var user = await GetByIdAsync(userId);
-                if (user == null) return false;
+                var userRole = await _context.UserRoles
+                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
 
-                // Check if already assigned
-                var existingAssignment = user.UserPermissions.Any(up => up.MenuId == menuId);
-                if (existingAssignment) return false;
+                if (userRole == null)
+                    return false;
 
-                var userPermission = new UserPermission
+                _context.UserRoles.Remove(userRole);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<List<Role>> GetUserRolesAsync(int userId)
+        {
+            return await _context.UserRoles
+                .Where(ur => ur.UserId == userId && ur.IsActive)
+                .Include(ur => ur.Role)
+                .Select(ur => ur.Role)
+                .ToListAsync();
+        }
+
+        public async Task<List<User>> GetUsersByRoleAsync(int roleId)
+        {
+            return await _context.UserRoles
+                .Where(ur => ur.RoleId == roleId && ur.IsActive)
+                .Include(ur => ur.User)
+                .Select(ur => ur.User)
+                .ToListAsync();
+        }
+
+        #endregion
+
+        #region Kullanıcı-Menü İşlemleri
+
+        public async Task<bool> AssignMenuToUserAsync(int userId, int menuId, int assignedBy, DateTime? expiryDate = null, string? notes = null)
+        {
+            try
+            {
+                var existing = await _context.UserMenus
+                    .FirstOrDefaultAsync(um => um.UserId == userId && um.MenuId == menuId);
+
+                if (existing != null)
+                    return false;
+
+                var userMenu = new UserMenu
                 {
                     UserId = userId,
                     MenuId = menuId,
-                    AssignedDate = DateTime.Now
+                    AssignedBy = assignedBy,
+                    AssignedDate = DateTime.Now,
+                    ExpiryDate = expiryDate,
+                    IsActive = true,
+                    Notes = notes
                 };
 
-                user.UserPermissions.Add(userPermission);
-                await UpdateAsync(user);
+                _context.UserMenus.Add(userMenu);
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch
@@ -220,18 +117,18 @@ namespace Bussiness.Repository.Concrete
             }
         }
 
-        public async Task<bool> RemoveUserFromMenuAsync(int userId, int menuId)
+        public async Task<bool> RemoveMenuFromUserAsync(int userId, int menuId)
         {
             try
             {
-                var user = await GetByIdAsync(userId);
-                if (user == null) return false;
+                var userMenu = await _context.UserMenus
+                    .FirstOrDefaultAsync(um => um.UserId == userId && um.MenuId == menuId);
 
-                var userPermission = user.UserPermissions.FirstOrDefault(up => up.MenuId == menuId);
-                if (userPermission == null) return false;
+                if (userMenu == null)
+                    return false;
 
-                user.UserPermissions.Remove(userPermission);
-                await UpdateAsync(user);
+                _context.UserMenus.Remove(userMenu);
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch
@@ -239,5 +136,253 @@ namespace Bussiness.Repository.Concrete
                 return false;
             }
         }
+
+        public async Task<List<Menu>> GetUserMenusAsync(int userId)
+        {
+            return await _context.UserMenus
+                .Where(um => um.UserId == userId && um.IsActive)
+                .Include(um => um.Menu)
+                .Select(um => um.Menu)
+                .ToListAsync();
+        }
+
+        #endregion
+
+        #region Kullanıcı-Menü-İzin İşlemleri
+
+        public async Task<bool> AssignMenuPermissionToUserAsync(int userId, int menuId, int permissionId, string permissionLevel, int assignedBy, DateTime? expiryDate = null, string? notes = null)
+        {
+            try
+            {
+                var existing = await _context.UserMenuPermissions
+                    .FirstOrDefaultAsync(ump => ump.UserId == userId && ump.MenuId == menuId && ump.PermissionId == permissionId);
+
+                if (existing != null)
+                    return false;
+
+                var userMenuPermission = new UserMenuPermission
+                {
+                    UserId = userId,
+                    MenuId = menuId,
+                    PermissionId = permissionId,
+                    PermissionLevel = permissionLevel,
+                    AssignedBy = assignedBy,
+                    AssignedDate = DateTime.Now,
+                    ExpiryDate = expiryDate,
+                    IsActive = true,
+                    Notes = notes
+                };
+
+                _context.UserMenuPermissions.Add(userMenuPermission);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> RemoveMenuPermissionFromUserAsync(int userId, int menuId, int permissionId)
+        {
+            try
+            {
+                var userMenuPermission = await _context.UserMenuPermissions
+                    .FirstOrDefaultAsync(ump => ump.UserId == userId && ump.MenuId == menuId && ump.PermissionId == permissionId);
+
+                if (userMenuPermission == null)
+                    return false;
+
+                _context.UserMenuPermissions.Remove(userMenuPermission);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<List<UserMenuPermission>> GetUserMenuPermissionsAsync(int userId)
+        {
+            return await _context.UserMenuPermissions
+                .Where(ump => ump.UserId == userId && ump.IsActive)
+                .Include(ump => ump.Menu)
+                .Include(ump => ump.Permission)
+                .ToListAsync();
+        }
+
+        public async Task<List<UserMenuPermission>> GetUserMenuPermissionsByMenuAsync(int userId, int menuId)
+        {
+            return await _context.UserMenuPermissions
+                .Where(ump => ump.UserId == userId && ump.MenuId == menuId && ump.IsActive)
+                .Include(ump => ump.Permission)
+                .ToListAsync();
+        }
+
+        #endregion
+
+        #region Yetki Kontrolü
+
+        public async Task<bool> HasPermissionAsync(int userId, int menuId, string permissionLevel)
+        {
+            // Önce kullanıcının rolleri üzerinden kontrol et
+            var rolePermission = await _context.RoleMenuPermissions
+                .Where(rmp => rmp.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))
+                .Where(rmp => rmp.MenuId == menuId && rmp.PermissionLevel == permissionLevel && rmp.IsActive)
+                .AnyAsync();
+
+            if (rolePermission)
+                return true;
+
+            // Sonra kullanıcının direkt izinlerini kontrol et
+            var userPermission = await _context.UserMenuPermissions
+                .Where(ump => ump.UserId == userId && ump.MenuId == menuId && ump.PermissionLevel == permissionLevel && ump.IsActive)
+                .AnyAsync();
+
+            return userPermission;
+        }
+
+        public async Task<List<string>> GetUserPermissionLevelsAsync(int userId, int menuId)
+        {
+            var rolePermissions = await _context.RoleMenuPermissions
+                .Where(rmp => rmp.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))
+                .Where(rmp => rmp.MenuId == menuId && rmp.IsActive)
+                .Select(rmp => rmp.PermissionLevel)
+                .ToListAsync();
+
+            var userPermissions = await _context.UserMenuPermissions
+                .Where(ump => ump.UserId == userId && ump.MenuId == menuId && ump.IsActive)
+                .Select(ump => ump.PermissionLevel)
+                .ToListAsync();
+
+            return rolePermissions.Union(userPermissions).Distinct().ToList();
+        }
+
+        public async Task<bool> CanUserAccessMenuAsync(int userId, int menuId, string permissionLevel)
+        {
+            return await HasPermissionAsync(userId, menuId, permissionLevel);
+        }
+
+        #endregion
+
+        #region Kullanıcı Arama ve Filtreleme
+
+        public async Task<List<User>> GetAvailableUsersForRoleAsync(int roleId, string? search = null)
+        {
+            var query = _context.Users
+                .Where(u => u.IsActive && !u.UserRoles.Any(ur => ur.RoleId == roleId && ur.IsActive));
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(u => u.Username.Contains(search) || u.FirstName.Contains(search) || u.LastName.Contains(search));
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<User>> GetAvailableUsersForMenuAsync(int menuId, string? search = null)
+        {
+            var query = _context.Users
+                .Where(u => u.IsActive && !u.UserMenus.Any(um => um.MenuId == menuId && um.IsActive));
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(u => u.Username.Contains(search) || u.FirstName.Contains(search) || u.LastName.Contains(search));
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<User>> SearchUsersAsync(string searchTerm)
+        {
+            return await _context.Users
+                .Where(u => u.Username.Contains(searchTerm) || 
+                           u.FirstName.Contains(searchTerm) || 
+                           u.LastName.Contains(searchTerm) ||
+                           u.Email.Contains(searchTerm))
+                .ToListAsync();
+        }
+
+        public async Task<List<User>> GetActiveUsersAsync()
+        {
+            return await _context.Users
+                .Where(u => u.IsActive)
+                .ToListAsync();
+        }
+
+        #endregion
+
+        #region Kullanıcı Bilgileri
+
+        public async Task<User?> GetUserWithRolesAsync(int userId)
+        {
+            return await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        public async Task<User?> GetUserWithMenusAsync(int userId)
+        {
+            return await _context.Users
+                .Include(u => u.UserMenus)
+                    .ThenInclude(um => um.Menu)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        public async Task<User?> GetUserWithPermissionsAsync(int userId)
+        {
+            return await _context.Users
+                .Include(u => u.UserMenuPermissions)
+                    .ThenInclude(ump => ump.Menu)
+                .Include(u => u.UserMenuPermissions)
+                    .ThenInclude(ump => ump.Permission)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        public async Task<User?> GetUserByUsernameAsync(string username)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<User?> GetUserByEmailAsync(string email)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<User?> LoginAsync(string username, string password)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Username == username && u.Password == password && u.IsActive);
+        }
+
+        #endregion
+
+        #region Kullanıcı İstatistikleri
+
+        public async Task<int> GetUserCountAsync()
+        {
+            return await _context.Users.CountAsync();
+        }
+
+        public async Task<int> GetActiveUserCountAsync()
+        {
+            return await _context.Users.CountAsync(u => u.IsActive);
+        }
+
+        public async Task<int> GetUserRoleCountAsync(int userId)
+        {
+            return await _context.UserRoles.CountAsync(ur => ur.UserId == userId && ur.IsActive);
+        }
+
+        public async Task<int> GetUserMenuCountAsync(int userId)
+        {
+            return await _context.UserMenus.CountAsync(um => um.UserId == userId && um.IsActive);
+        }
+
+        #endregion
     }
 }

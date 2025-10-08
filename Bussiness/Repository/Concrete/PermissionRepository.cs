@@ -1,7 +1,7 @@
-using DataAccess.DbContext;
-using Entities.Entity;
-using Bussiness.Repository.Abstract;
 using Microsoft.EntityFrameworkCore;
+using DataAccess.DbContext;
+using Bussiness.Repository.Abstract;
+using Entities.Entity;
 
 namespace Bussiness.Repository.Concrete
 {
@@ -11,279 +11,263 @@ namespace Bussiness.Repository.Concrete
         {
         }
 
-        public async Task<Permission?> GetByCodeAsync(string code)
-        {
-            return await GetFirstOrDefaultAsync(p => p.Code == code);
-        }
+        #region Yetki Seviyeleri
 
-        public async Task<IEnumerable<Permission>> GetActivePermissionsAsync()
+        public async Task<List<Permission>> GetStandardPermissionsAsync()
         {
-            return await GetWhereAsync(p => p.IsActive);
-        }
-
-        public async Task<IEnumerable<Permission>> GetUserPermissionsAsync(int userId)
-        {
-            // Get permissions from user's roles
-            var rolePermissions = await _context.UserRoles
-                .Where(ur => ur.UserId == userId && ur.IsActive)
-                .SelectMany(ur => ur.Role.RolePermissions
-                    .Where(rp => rp.IsActive)
-                    .Select(rp => rp.Permission))
+            return await _context.Permissions
                 .Where(p => p.IsActive)
-                .Distinct()
-                .ToListAsync();
-
-            // Get direct user permissions
-            var userPermissions = await _context.UserPermissions
-                .Where(up => up.UserId == userId && up.IsActive)
-                .Select(up => up.Permission)
-                .Where(p => p.IsActive)
-                .Distinct()
-                .ToListAsync();
-
-            // Combine and return unique permissions
-            return rolePermissions.Union(userPermissions);
-        }
-
-        public async Task<IEnumerable<Permission>> GetRolePermissionsAsync(int roleId)
-        {
-            return await _context.RolePermissions
-                .Where(rp => rp.RoleId == roleId && rp.IsActive)
-                .Select(rp => rp.Permission)
-                .Where(p => p.IsActive)
-                .Distinct()
+                .OrderBy(p => p.Name)
                 .ToListAsync();
         }
 
-        public async Task<bool> HasPermissionAsync(int userId, string permissionCode, int? menuId = null)
+        public async Task<List<string>> GetPermissionLevelsAsync()
         {
-            // Check role permissions
-            var hasRolePermission = await _context.UserRoles
-                .Where(ur => ur.UserId == userId && ur.IsActive)
-                .SelectMany(ur => ur.Role.RolePermissions
-                    .Where(rp => rp.IsActive && 
-                           rp.Permission.Code == permissionCode &&
-                           (menuId == null || rp.MenuId == menuId)))
+            return new List<string> { "VIEW", "CREATE", "EDIT", "DELETE", "EXPORT", "IMPORT", "PRINT", "APPROVE" };
+        }
+
+        public async Task<List<Permission>> GetActivePermissionsAsync()
+        {
+            return await _context.Permissions
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+        }
+
+        #endregion
+
+        #region Yetki Kontrolü
+
+        public async Task<bool> IsValidPermissionLevelAsync(string permissionLevel)
+        {
+            var validLevels = await GetPermissionLevelsAsync();
+            return validLevels.Contains(permissionLevel);
+        }
+
+        public async Task<Permission?> GetPermissionByCodeAsync(string code)
+        {
+            return await _context.Permissions
+                .FirstOrDefaultAsync(p => p.Code == code && p.IsActive);
+        }
+
+        public async Task<bool> HasPermissionAsync(int userId, int menuId, string permissionLevel)
+        {
+            // Rol üzerinden kontrol
+            var rolePermission = await _context.RoleMenuPermissions
+                .Where(rmp => rmp.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))
+                .Where(rmp => rmp.MenuId == menuId && rmp.PermissionLevel == permissionLevel && rmp.IsActive)
                 .AnyAsync();
 
-            if (hasRolePermission)
+            if (rolePermission)
                 return true;
 
-            // Check direct user permissions
-            var hasUserPermission = await _context.UserPermissions
-                .Where(up => up.UserId == userId && up.IsActive &&
-                       up.Permission.Code == permissionCode &&
-                       (menuId == null || up.MenuId == menuId))
+            // Kullanıcı üzerinden kontrol
+            var userPermission = await _context.UserMenuPermissions
+                .Where(ump => ump.UserId == userId && ump.MenuId == menuId && ump.PermissionLevel == permissionLevel && ump.IsActive)
                 .AnyAsync();
 
-            return hasUserPermission;
+            return userPermission;
         }
 
-        public async Task<IEnumerable<string>> GetUserPermissionCodesAsync(int userId, int? menuId = null)
+        #endregion
+
+        #region Kullanıcı Yetki İşlemleri
+
+        public async Task<List<UserMenuPermission>> GetUserPermissionsAsync(int userId)
         {
-            var permissions = await GetUserPermissionsAsync(userId);
-            
-            return permissions
-                .Where(p => menuId == null || 
-                           p.RolePermissions.Any(rp => rp.MenuId == menuId) || 
-                           p.UserPermissions.Any(up => up.MenuId == menuId))
-                .Select(p => p.Code ?? "")
-                .Where(code => !string.IsNullOrEmpty(code));
+            return await _context.UserMenuPermissions
+                .Where(ump => ump.UserId == userId && ump.IsActive)
+                .Include(ump => ump.Menu)
+                .Include(ump => ump.Permission)
+                .ToListAsync();
         }
 
-        public async Task<bool> HasAnyPermissionAsync(int userId, IEnumerable<string> permissionCodes, int? menuId = null)
+        public async Task<List<UserMenuPermission>> GetUserPermissionsByMenuAsync(int userId, int menuId)
         {
-            foreach (var permissionCode in permissionCodes)
-            {
-                if (await HasPermissionAsync(userId, permissionCode, menuId))
-                    return true;
-            }
-            return false;
+            return await _context.UserMenuPermissions
+                .Where(ump => ump.UserId == userId && ump.MenuId == menuId && ump.IsActive)
+                .Include(ump => ump.Permission)
+                .ToListAsync();
         }
 
-        // Permission-Role Management
-        public async Task<IEnumerable<Permission>> GetAvailablePermissionsForRoleAsync(int roleId, int? menuId = null, string search = "")
+        public async Task<List<string>> GetUserPermissionCodesAsync(int userId)
         {
-            // Get role's current permissions
-            var rolePermissions = await _context.RolePermissions
-                .Where(rp => rp.RoleId == roleId && rp.IsActive)
-                .Select(rp => rp.PermissionId)
+            var rolePermissions = await _context.RoleMenuPermissions
+                .Where(rmp => rmp.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))
+                .Where(rmp => rmp.IsActive)
+                .Include(rmp => rmp.Permission)
+                .Select(rmp => rmp.Permission.Code)
                 .ToListAsync();
 
-            // Get all active permissions
-            var query = _context.Permissions.Where(p => p.IsActive);
+            var userPermissions = await _context.UserMenuPermissions
+                .Where(ump => ump.UserId == userId && ump.IsActive)
+                .Include(ump => ump.Permission)
+                .Select(ump => ump.Permission.Code)
+                .ToListAsync();
 
-            // Filter out already assigned permissions
-            if (rolePermissions.Any())
+            return rolePermissions.Union(userPermissions).Distinct().ToList();
+        }
+
+        #endregion
+
+        #region Rol Yetki İşlemleri
+
+        public async Task<List<RoleMenuPermission>> GetRolePermissionsAsync(int roleId)
+        {
+            return await _context.RoleMenuPermissions
+                .Where(rmp => rmp.RoleId == roleId && rmp.IsActive)
+                .Include(rmp => rmp.Menu)
+                .Include(rmp => rmp.Permission)
+                .ToListAsync();
+        }
+
+        public async Task<List<RoleMenuPermission>> GetRolePermissionsByMenuAsync(int roleId, int menuId)
+        {
+            return await _context.RoleMenuPermissions
+                .Where(rmp => rmp.RoleId == roleId && rmp.MenuId == menuId && rmp.IsActive)
+                .Include(rmp => rmp.Permission)
+                .ToListAsync();
+        }
+
+        #endregion
+
+        #region Yetki İstatistikleri
+
+        public async Task<Dictionary<string, int>> GetPermissionUsageStatsAsync()
+        {
+            var roleStats = await _context.RoleMenuPermissions
+                .Where(rmp => rmp.IsActive)
+                .GroupBy(rmp => rmp.PermissionLevel)
+                .ToDictionaryAsync(g => g.Key, g => g.Count());
+
+            var userStats = await _context.UserMenuPermissions
+                .Where(ump => ump.IsActive)
+                .GroupBy(ump => ump.PermissionLevel)
+                .ToDictionaryAsync(g => g.Key, g => g.Count());
+
+            var result = new Dictionary<string, int>();
+            foreach (var kvp in roleStats)
             {
-                query = query.Where(p => !rolePermissions.Contains(p.Id));
+                result[kvp.Key] = kvp.Value;
             }
-
-            // Apply menu filter if specified
-            if (menuId.HasValue)
+            foreach (var kvp in userStats)
             {
-                // Only show permissions that are not already assigned to this role for this menu
-                var roleMenuPermissions = await _context.RolePermissions
-                    .Where(rp => rp.RoleId == roleId && rp.MenuId == menuId && rp.IsActive)
-                    .Select(rp => rp.PermissionId)
-                    .ToListAsync();
-
-                if (roleMenuPermissions.Any())
+                if (result.ContainsKey(kvp.Key))
                 {
-                    query = query.Where(p => !roleMenuPermissions.Contains(p.Id));
+                    result[kvp.Key] += kvp.Value;
+                }
+                else
+                {
+                    result[kvp.Key] = kvp.Value;
                 }
             }
 
-            // Apply search filter
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(p => p.Name.Contains(search) || 
-                                       (p.Code != null && p.Code.Contains(search)) ||
-                                       (p.Description != null && p.Description.Contains(search)));
-            }
-
-            return await query.ToListAsync();
+            return result;
         }
 
-        public async Task<bool> AssignPermissionToRoleAsync(int roleId, int permissionId, int? menuId = null)
+        public async Task<int> GetPermissionUsageCountAsync(string permissionLevel)
         {
-            // Check if already exists
-            var exists = await _context.RolePermissions
-                .AnyAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId && 
-                               (menuId == null || rp.MenuId == menuId));
+            var roleCount = await _context.RoleMenuPermissions
+                .CountAsync(rmp => rmp.PermissionLevel == permissionLevel && rmp.IsActive);
 
-            if (exists)
-                return false;
+            var userCount = await _context.UserMenuPermissions
+                .CountAsync(ump => ump.PermissionLevel == permissionLevel && ump.IsActive);
 
-            var rolePermission = new RolePermission
-            {
-                RoleId = roleId,
-                PermissionId = permissionId,
-                MenuId = menuId,
-                AssignedDate = DateTime.Now,
-                IsActive = true
-            };
-
-            _context.RolePermissions.Add(rolePermission);
-            await _context.SaveChangesAsync();
-            return true;
+            return roleCount + userCount;
         }
 
-        public async Task<bool> RemovePermissionFromRoleAsync(int roleId, int permissionId, int? menuId = null)
+        public async Task<int> GetUserPermissionCountAsync(int userId)
         {
-            var rolePermission = await _context.RolePermissions
-                .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId && 
-                                          (menuId == null || rp.MenuId == menuId));
+            var rolePermissions = await _context.RoleMenuPermissions
+                .Where(rmp => rmp.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))
+                .Where(rmp => rmp.IsActive)
+                .CountAsync();
 
-            if (rolePermission == null)
-                return false;
+            var userPermissions = await _context.UserMenuPermissions
+                .CountAsync(ump => ump.UserId == userId && ump.IsActive);
 
-            _context.RolePermissions.Remove(rolePermission);
-            await _context.SaveChangesAsync();
-            return true;
+            return rolePermissions + userPermissions;
         }
 
-        // Permission-User Management
-        public async Task<IEnumerable<Permission>> GetAvailablePermissionsForUserAsync(int userId, int? menuId = null, string search = "")
+        public async Task<int> GetRolePermissionCountAsync(int roleId)
         {
-            // Get user's current direct permissions
-            var userPermissions = await _context.UserPermissions
-                .Where(up => up.UserId == userId && up.IsActive)
-                .Select(up => up.PermissionId)
-                .ToListAsync();
-
-            // Get all active permissions
-            var query = _context.Permissions.Where(p => p.IsActive);
-
-            // Filter out already assigned permissions
-            if (userPermissions.Any())
-            {
-                query = query.Where(p => !userPermissions.Contains(p.Id));
-            }
-
-            // Apply menu filter if specified
-            if (menuId.HasValue)
-            {
-                // Only show permissions that are not already assigned to this user for this menu
-                var userMenuPermissions = await _context.UserPermissions
-                    .Where(up => up.UserId == userId && up.MenuId == menuId && up.IsActive)
-                    .Select(up => up.PermissionId)
-                    .ToListAsync();
-
-                if (userMenuPermissions.Any())
-                {
-                    query = query.Where(p => !userMenuPermissions.Contains(p.Id));
-                }
-            }
-
-            // Apply search filter
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(p => p.Name.Contains(search) || 
-                                       (p.Code != null && p.Code.Contains(search)) ||
-                                       (p.Description != null && p.Description.Contains(search)));
-            }
-
-            return await query.ToListAsync();
+            return await _context.RoleMenuPermissions.CountAsync(rmp => rmp.RoleId == roleId && rmp.IsActive);
         }
 
-        public async Task<bool> AssignPermissionToUserAsync(int userId, int permissionId, int? menuId = null)
+        public async Task<int> GetMenuPermissionCountAsync(int menuId)
         {
-            // Check if already exists
-            var exists = await _context.UserPermissions
-                .AnyAsync(up => up.UserId == userId && up.PermissionId == permissionId && 
-                               (menuId == null || up.MenuId == menuId));
+            var rolePermissions = await _context.RoleMenuPermissions
+                .CountAsync(rmp => rmp.MenuId == menuId && rmp.IsActive);
 
-            if (exists)
-                return false;
+            var userPermissions = await _context.UserMenuPermissions
+                .CountAsync(ump => ump.MenuId == menuId && ump.IsActive);
 
-            var userPermission = new UserPermission
-            {
-                UserId = userId,
-                PermissionId = permissionId,
-                MenuId = menuId,
-                AssignedDate = DateTime.Now,
-                IsActive = true
-            };
-
-            _context.UserPermissions.Add(userPermission);
-            await _context.SaveChangesAsync();
-            return true;
+            return rolePermissions + userPermissions;
         }
 
-        public async Task<bool> RemovePermissionFromUserAsync(int userId, int permissionId, int? menuId = null)
+        public async Task<int> GetPermissionUserMenuCountAsync(int permissionId)
         {
-            var userPermission = await _context.UserPermissions
-                .FirstOrDefaultAsync(up => up.UserId == userId && up.PermissionId == permissionId && 
-                                          (menuId == null || up.MenuId == menuId));
-
-            if (userPermission == null)
-                return false;
-
-            _context.UserPermissions.Remove(userPermission);
-            await _context.SaveChangesAsync();
-            return true;
+            return await _context.UserMenuPermissions
+                .CountAsync(ump => ump.PermissionId == permissionId && ump.IsActive);
         }
 
-        // Get entities that have specific permission
-        public async Task<IEnumerable<Role>> GetRolesByPermissionIdAsync(int permissionId)
+        public async Task<int> GetPermissionRoleMenuCountAsync(int permissionId)
         {
-            return await _context.RolePermissions
-                .Where(rp => rp.PermissionId == permissionId && rp.IsActive)
-                .Select(rp => rp.Role)
-                .Where(r => r.IsActive)
-                .Distinct()
+            return await _context.RoleMenuPermissions
+                .CountAsync(rmp => rmp.PermissionId == permissionId && rmp.IsActive);
+        }
+
+        #endregion
+
+        #region Yetki Arama
+
+        public async Task<List<Permission>> SearchPermissionsAsync(string searchTerm)
+        {
+            return await _context.Permissions
+                .Where(p => p.Name.Contains(searchTerm) || 
+                           p.Description.Contains(searchTerm) ||
+                           p.Code.Contains(searchTerm))
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<User>> GetUsersByPermissionIdAsync(int permissionId)
+        public async Task<List<Permission>> GetPermissionsByLevelAsync(string permissionLevel)
         {
-            return await _context.UserPermissions
-                .Where(up => up.PermissionId == permissionId && up.IsActive)
-                .Select(up => up.User)
-                .Where(u => u.IsActive)
-                .Distinct()
+            return await _context.Permissions
+                .Where(p => p.IsActive)
                 .ToListAsync();
         }
+
+        #endregion
+
+        #region Yetki Kullanım Analizi
+
+        public async Task<List<UserMenuPermission>> GetPermissionUsageByUserAsync(int userId)
+        {
+            return await _context.UserMenuPermissions
+                .Where(ump => ump.UserId == userId && ump.IsActive)
+                .Include(ump => ump.Menu)
+                .Include(ump => ump.Permission)
+                .ToListAsync();
+        }
+
+        public async Task<List<RoleMenuPermission>> GetPermissionUsageByRoleAsync(int roleId)
+        {
+            return await _context.RoleMenuPermissions
+                .Where(rmp => rmp.RoleId == roleId && rmp.IsActive)
+                .Include(rmp => rmp.Menu)
+                .Include(rmp => rmp.Permission)
+                .ToListAsync();
+        }
+
+        public async Task<List<UserMenuPermission>> GetPermissionUsageByMenuAsync(int menuId)
+        {
+            return await _context.UserMenuPermissions
+                .Where(ump => ump.MenuId == menuId && ump.IsActive)
+                .Include(ump => ump.User)
+                .Include(ump => ump.Permission)
+                .ToListAsync();
+        }
+
+        #endregion
     }
 }

@@ -2,20 +2,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Entities.Entity
 {
-    public class UserRole
+    public class RoleMenu
     {
         [Key]
         public int Id { get; set; }
 
         [Required]
-        public int UserId { get; set; }
-
-        [Required]
         public int RoleId { get; set; }
 
-        public DateTime AssignedDate { get; set; } = DateTime.Now;
+        [Required]
+        public int MenuId { get; set; }
 
-        public DateTime? ExpiryDate { get; set; }
+        public DateTime AssignedDate { get; set; } = DateTime.Now;
 
         public bool IsActive { get; set; } = true;
 
@@ -25,8 +23,8 @@ namespace Entities.Entity
         public string? Notes { get; set; }
 
         // Navigation Properties
-        public virtual User User { get; set; } = null!;
         public virtual Role Role { get; set; } = null!;
+        public virtual Menu Menu { get; set; } = null!;
         public virtual User? AssignedByUser { get; set; }
     }
 }

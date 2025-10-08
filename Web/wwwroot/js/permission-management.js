@@ -25,12 +25,12 @@ function initializePermissionManagement() {
             }
         },
             columns: [
-                { data: 'id' },
-                { data: 'name' },
-                { data: 'code' },
-                { data: 'description' },
+                { data: 'Id' },
+                { data: 'Name' },
+                { data: 'Code' },
+                { data: 'Description' },
                 { 
-                    data: 'isActive',
+                    data: 'IsActive',
                     render: function(data, type, row) {
                         if (data) {
                             return '<span class="badge bg-success">Aktif</span>';
@@ -39,12 +39,12 @@ function initializePermissionManagement() {
                         }
                     }
                 },
-                { data: 'createdDate' },
+                { data: 'CreatedDate' },
                 {
                     data: null,
                     orderable: false,
                     render: function(data, type, row) {
-                        return '<button class="btn btn-sm btn-outline-primary view-roles" data-id="' + row.id + '" title="Rolleri Görüntüle">' +
+                        return '<button class="btn btn-sm btn-outline-primary view-roles" data-id="' + row.Id + '" title="Rolleri Görüntüle">' +
                             '<i class="bi bi-shield-check"></i>' +
                             '</button>';
                     }
@@ -53,7 +53,7 @@ function initializePermissionManagement() {
                     data: null,
                     orderable: false,
                     render: function(data, type, row) {
-                        return '<button class="btn btn-sm btn-outline-warning view-users" data-id="' + row.id + '" title="Kullanıcıları Görüntüle">' +
+                        return '<button class="btn btn-sm btn-outline-warning view-users" data-id="' + row.Id + '" title="Kullanıcıları Görüntüle">' +
                             '<i class="bi bi-people"></i>' +
                             '</button>';
                     }
@@ -64,17 +64,17 @@ function initializePermissionManagement() {
                         var actions = '';
                         
                         if (window.permissionPermissions && window.permissionPermissions.canView) {
-                            actions += '<button class="btn btn-sm btn-outline-info me-1 view-permission" data-id="' + row.id + '" title="Görüntüle">';
+                            actions += '<button class="btn btn-sm btn-outline-info me-1 view-permission" data-id="' + row.Id + '" title="Görüntüle">';
                             actions += '<i class="bi bi-eye"></i></button>';
                         }
                         
                         if (window.permissionPermissions && window.permissionPermissions.canEdit) {
-                            actions += '<button class="btn btn-sm btn-outline-primary me-1 edit-permission" data-id="' + row.id + '" title="Düzenle">';
+                            actions += '<button class="btn btn-sm btn-outline-primary me-1 edit-permission" data-id="' + row.Id + '" title="Düzenle">';
                             actions += '<i class="bi bi-pencil"></i></button>';
                         }
                         
                         if (window.permissionPermissions && window.permissionPermissions.canDelete) {
-                            actions += '<button class="btn btn-sm btn-outline-danger me-1 delete-permission" data-id="' + row.id + '" title="Sil">';
+                            actions += '<button class="btn btn-sm btn-outline-danger me-1 delete-permission" data-id="' + row.Id + '" title="Sil">';
                             actions += '<i class="bi bi-trash"></i></button>';
                         }
                         
@@ -120,11 +120,11 @@ function initializePermissionManagement() {
             .done(function(response) {
                 if (response.success && response.data) {
                     $('#permissionModalLabel').text('Yetki Düzenle');
-                    $('#permissionId').val(response.data.id);
-                    $('#permissionName').val(response.data.name);
-                    $('#permissionCode').val(response.data.code);
-                    $('#permissionDescription').val(response.data.description);
-                    $('#permissionIsActive').prop('checked', response.data.isActive);
+                    $('#permissionId').val(response.data.Id);
+                    $('#permissionName').val(response.data.Name);
+                    $('#permissionCode').val(response.data.Code);
+                    $('#permissionDescription').val(response.data.Description);
+                    $('#permissionIsActive').prop('checked', response.data.IsActive);
                     showSlideModal();
                 } else {
                     showAlert('Yetki bilgileri alınamadı', 'error');
@@ -405,10 +405,10 @@ function initializePermissionManagement() {
     }
 
     function displayPermissionInfo(permission) {
-        $('#modalPermissionRoleName').text(permission.name || '-');
-        $('#modalPermissionRoleCode').text(permission.code || '-');
+        $('#modalPermissionRoleName').text(permission.Name || '-');
+        $('#modalPermissionRoleCode').text(permission.Code || '-');
         
-        const statusBadge = permission.isActive ? 
+        const statusBadge = permission.IsActive ? 
             '<span class="badge bg-success">Aktif</span>' : 
             '<span class="badge bg-danger">Pasif</span>';
         $('#modalPermissionRoleStatus').html(statusBadge);
@@ -418,10 +418,10 @@ function initializePermissionManagement() {
     }
 
     function displayPermissionUserInfo(permission) {
-        $('#modalPermissionUserName').text(permission.name || '-');
-        $('#modalPermissionUserCode').text(permission.code || '-');
+        $('#modalPermissionUserName').text(permission.Name || '-');
+        $('#modalPermissionUserCode').text(permission.Code || '-');
         
-        const statusBadge = permission.isActive ? 
+        const statusBadge = permission.IsActive ? 
             '<span class="badge bg-success">Aktif</span>' : 
             '<span class="badge bg-danger">Pasif</span>';
         $('#modalPermissionUserStatus').html(statusBadge);
@@ -450,21 +450,13 @@ function initializePermissionManagement() {
     }
 
     function loadPermissionRoles(permissionId) {
-        $.ajax({
-            url: '/Permission/GetRolesByPermission',
-            type: 'GET',
-            data: { permissionId: permissionId },
-            success: function(response) {
-                if (response.success) {
-                    displayAssignedPermissionRoles(response.data);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Roller yüklenirken hata oluştu!', 'error');
-            }
-        });
+        // Yeni ERP yapısında Permission entity'si sadece sistem yetkileri için kullanılır
+        $('#assignedPermissionRolesList').html(`
+            <div class="empty-state">
+                <i class="bi bi-info-circle"></i>
+                <p class="mb-0">Yeni ERP yapısında sistem yetkileri rol bazlı değil, menü bazlı yönetilir</p>
+            </div>
+        `);
     }
 
     function loadPermissionRolesAsync(permissionId) {
@@ -491,52 +483,28 @@ function initializePermissionManagement() {
     }
 
     function loadAvailableRolesForPermission(permissionId, search = '') {
-        // Bu fonksiyon bir permission'a atanabilecek rolleri getirmek için kullanılacak
-        // Şu an için tüm rolleri getiriyoruz
-        $.ajax({
-            url: '/Role/GetRoles',
-            type: 'GET',
-            success: function(response) {
-                if (response.data) {
-                    // Arama filtresi uygula
-                    let filteredRoles = response.data;
-                    if (search) {
-                        filteredRoles = response.data.filter(role => 
-                            role.name.toLowerCase().includes(search.toLowerCase()) ||
-                            (role.description && role.description.toLowerCase().includes(search.toLowerCase()))
-                        );
-                    }
-                    displayAvailablePermissionRoles(filteredRoles);
-                } else {
-                    showAlert('Roller yüklenirken hata oluştu!', 'error');
-                }
-            },
-            error: function() {
-                showAlert('Roller yüklenirken hata oluştu!', 'error');
-            }
-        });
+        // Yeni ERP yapısında Permission entity'si sadece sistem yetkileri için kullanılır
+        $('#availablePermissionRolesList').html(`
+            <div class="empty-state">
+                <i class="bi bi-info-circle"></i>
+                <p class="mb-0">Menü yetkileri Rol Yönetimi sayfasından yönetilir</p>
+            </div>
+        `);
     }
 
     function loadAvailableRolesForPermissionAsync(permissionId, search = '') {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: '/Role/GetRoles',
+                url: '/Permission/GetAvailableRolesForPermission',
                 type: 'GET',
+                data: { permissionId: permissionId, search: search },
                 success: function(response) {
-                    if (response.data) {
-                        // Arama filtresi uygula
-                        let filteredRoles = response.data;
-                        if (search) {
-                            filteredRoles = response.data.filter(role => 
-                                role.name.toLowerCase().includes(search.toLowerCase()) ||
-                                (role.description && role.description.toLowerCase().includes(search.toLowerCase()))
-                            );
-                        }
-                        displayAvailablePermissionRoles(filteredRoles);
+                    if (response.success) {
+                        displayAvailablePermissionRoles(response.data);
                         resolve(response);
                     } else {
-                        showAlert('Roller yüklenirken hata oluştu!', 'error');
-                        reject('Roller yüklenirken hata oluştu!');
+                        showAlert(response.error || 'Roller yüklenirken hata oluştu!', 'error');
+                        reject(response.error || 'Roller yüklenirken hata oluştu!');
                     }
                 },
                 error: function() {
@@ -688,21 +656,13 @@ function initializePermissionManagement() {
     }
 
     function loadPermissionUsers(permissionId) {
-        $.ajax({
-            url: '/Permission/GetUsersByPermission',
-            type: 'GET',
-            data: { permissionId: permissionId },
-            success: function(response) {
-                if (response.success) {
-                    displayAssignedPermissionUsers(response.data);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Kullanıcılar yüklenirken hata oluştu!', 'error');
-            }
-        });
+        // Yeni ERP yapısında Permission entity'si sadece sistem yetkileri için kullanılır
+        $('#assignedPermissionUsersList').html(`
+            <div class="empty-state">
+                <i class="bi bi-info-circle"></i>
+                <p class="mb-0">Yeni ERP yapısında kullanıcılar rol üzerinden yetki alır</p>
+            </div>
+        `);
     }
 
     function loadPermissionUsersAsync(permissionId) {
@@ -729,56 +689,28 @@ function initializePermissionManagement() {
     }
 
     function loadAvailableUsersForPermission(permissionId, search = '') {
-        // Bu fonksiyon bir permission'a atanabilecek kullanıcıları getirmek için kullanılacak
-        // Şu an için tüm kullanıcıları getiriyoruz
-        $.ajax({
-            url: '/User/GetUsers',
-            type: 'GET',
-            success: function(response) {
-                if (response.data) {
-                    // Arama filtresi uygula
-                    let filteredUsers = response.data;
-                    if (search) {
-                        filteredUsers = response.data.filter(user => 
-                            user.username.toLowerCase().includes(search.toLowerCase()) ||
-                            user.firstName.toLowerCase().includes(search.toLowerCase()) ||
-                            user.lastName.toLowerCase().includes(search.toLowerCase()) ||
-                            user.email.toLowerCase().includes(search.toLowerCase())
-                        );
-                    }
-                    displayAvailablePermissionUsers(filteredUsers);
-                } else {
-                    showAlert('Kullanıcılar yüklenirken hata oluştu!', 'error');
-                }
-            },
-            error: function() {
-                showAlert('Kullanıcılar yüklenirken hata oluştu!', 'error');
-            }
-        });
+        // Yeni ERP yapısında Permission entity'si sadece sistem yetkileri için kullanılır
+        $('#availablePermissionUsersList').html(`
+            <div class="empty-state">
+                <i class="bi bi-info-circle"></i>
+                <p class="mb-0">Kullanıcılara rol atayarak yetki verin</p>
+            </div>
+        `);
     }
 
     function loadAvailableUsersForPermissionAsync(permissionId, search = '') {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: '/User/GetUsers',
+                url: '/Permission/GetAvailableUsersForPermission',
                 type: 'GET',
+                data: { permissionId: permissionId, search: search },
                 success: function(response) {
-                    if (response.data) {
-                        // Arama filtresi uygula
-                        let filteredUsers = response.data;
-                        if (search) {
-                            filteredUsers = response.data.filter(user => 
-                                user.username.toLowerCase().includes(search.toLowerCase()) ||
-                                user.firstName.toLowerCase().includes(search.toLowerCase()) ||
-                                user.lastName.toLowerCase().includes(search.toLowerCase()) ||
-                                user.email.toLowerCase().includes(search.toLowerCase())
-                            );
-                        }
-                        displayAvailablePermissionUsers(filteredUsers);
+                    if (response.success) {
+                        displayAvailablePermissionUsers(response.data);
                         resolve(response);
                     } else {
-                        showAlert('Kullanıcılar yüklenirken hata oluştu!', 'error');
-                        reject('Kullanıcılar yüklenirken hata oluştu!');
+                        showAlert(response.error || 'Kullanıcılar yüklenirken hata oluştu!', 'error');
+                        reject(response.error || 'Kullanıcılar yüklenirken hata oluştu!');
                     }
                 },
                 error: function() {

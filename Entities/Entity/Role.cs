@@ -22,6 +22,7 @@ namespace Entities.Entity
 
         // Navigation Properties
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-        public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
+        public virtual ICollection<RoleMenu> RoleMenus { get; set; } = new List<RoleMenu>();
+        public virtual ICollection<RoleMenuPermission> RoleMenuPermissions { get; set; } = new List<RoleMenuPermission>();
     }
 }

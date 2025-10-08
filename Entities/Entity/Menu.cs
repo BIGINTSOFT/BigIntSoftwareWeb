@@ -41,7 +41,9 @@ namespace Entities.Entity
         // Navigation Properties
         public virtual Menu? Parent { get; set; }
         public virtual ICollection<Menu> Children { get; set; } = new List<Menu>();
-        public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
-        public virtual ICollection<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
+        public virtual ICollection<UserMenu> UserMenus { get; set; } = new List<UserMenu>();
+        public virtual ICollection<UserMenuPermission> UserMenuPermissions { get; set; } = new List<UserMenuPermission>();
+        public virtual ICollection<RoleMenu> RoleMenus { get; set; } = new List<RoleMenu>();
+        public virtual ICollection<RoleMenuPermission> RoleMenuPermissions { get; set; } = new List<RoleMenuPermission>();
     }
 }

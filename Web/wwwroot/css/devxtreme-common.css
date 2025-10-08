@@ -1,0 +1,570 @@
+/* DevExtreme Common Styles for All Tables */
+
+/* DevExtreme DataGrid Container */
+.dx-datagrid-container {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: #fff;
+    margin-bottom: 20px;
+}
+
+/* DevExtreme DataGrid Header */
+.dx-datagrid-headers {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    border-bottom: 2px solid #5a6fd8;
+}
+
+.dx-header-row {
+    background: transparent !important;
+}
+
+.dx-datagrid-headers .dx-header-cell {
+    background: transparent !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-right: 1px solid rgba(255,255,255,0.2) !important;
+    padding: 12px 8px !important;
+}
+
+.dx-datagrid-headers .dx-header-cell:last-child {
+    border-right: none !important;
+}
+
+/* DevExtreme DataGrid Body */
+.dx-datagrid-rowsview {
+    background: #fff;
+}
+
+.dx-data-row {
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.dx-data-row:hover {
+    background: #f8f9ff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.dx-data-row:nth-child(even) {
+    background: #fafafa;
+}
+
+.dx-data-row:nth-child(even):hover {
+    background: #f8f9ff !important;
+}
+
+.dx-data-cell {
+    padding: 10px 8px !important;
+    border-right: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+
+.dx-data-cell:last-child {
+    border-right: none;
+}
+
+/* DevExtreme DataGrid Footer */
+.dx-datagrid-summary-item {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* DevExtreme Pager */
+.dx-datagrid-pager {
+    background: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+    padding: 10px 15px;
+}
+
+.dx-datagrid-pager .dx-page {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    margin: 0 2px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.dx-datagrid-pager .dx-page:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.dx-datagrid-pager .dx-page.dx-selection {
+    background: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+/* DevExtreme Loading Panel */
+.dx-loadpanel-content {
+    background: rgba(255,255,255,0.95);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.dx-loadindicator {
+    color: #007bff;
+}
+
+/* DevExtreme Search Box */
+.dx-datagrid-search-panel {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px 15px;
+}
+
+.dx-texteditor {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: all 0.2s ease;
+}
+
+.dx-texteditor:focus-within {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+/* DevExtreme Filter Row */
+.dx-datagrid-filter-row {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.dx-datagrid-filter-row .dx-editor-cell {
+    background: transparent;
+    border-right: 1px solid #e0e0e0;
+}
+
+/* DevExtreme Column Chooser */
+.dx-datagrid-column-chooser {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.dx-datagrid-column-chooser-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s ease;
+}
+
+.dx-datagrid-column-chooser-item:hover {
+    background: #f8f9ff;
+}
+
+/* DevExtreme Export Button */
+.dx-datagrid-export-button {
+    background: #28a745;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.dx-datagrid-export-button:hover {
+    background: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(40,167,69,0.3);
+}
+
+/* DevExtreme Refresh Button */
+.dx-datagrid-refresh-button {
+    background: #17a2b8;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.dx-datagrid-refresh-button:hover {
+    background: #138496;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(23,162,184,0.3);
+}
+
+/* DevExtreme Column Headers with Icons */
+.dx-datagrid-headers .dx-header-cell .dx-header-filter {
+    color: rgba(255,255,255,0.8);
+}
+
+.dx-datagrid-headers .dx-header-cell .dx-header-filter:hover {
+    color: white;
+}
+
+/* DevExtreme Row Selection */
+.dx-datagrid-rowsview .dx-selection {
+    background: rgba(0,123,255,0.1) !important;
+}
+
+.dx-datagrid-rowsview .dx-selection:hover {
+    background: rgba(0,123,255,0.15) !important;
+}
+
+/* DevExtreme Group Panel */
+.dx-datagrid-group-panel {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px 15px;
+}
+
+.dx-datagrid-group-panel-item {
+    background: #007bff;
+    color: white;
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 2px;
+    font-size: 12px;
+}
+
+/* DevExtreme Summary */
+.dx-datagrid-summary-item {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    border-top: 2px solid #e0e0e0;
+}
+
+/* DevExtreme Toolbar */
+.dx-datagrid-toolbar {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px 15px;
+}
+
+.dx-datagrid-toolbar .dx-button {
+    margin-right: 8px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.dx-datagrid-toolbar .dx-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* DevExtreme Button Styles */
+.dx-button {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.dx-button.dx-button-success {
+    background: #28a745;
+    color: white;
+}
+
+.dx-button.dx-button-success:hover {
+    background: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(40,167,69,0.3);
+}
+
+.dx-button.dx-button-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.dx-button.dx-button-danger:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(220,53,69,0.3);
+}
+
+.dx-button.dx-button-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.dx-button.dx-button-warning:hover {
+    background: #e0a800;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(255,193,7,0.3);
+}
+
+.dx-button.dx-button-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.dx-button.dx-button-info:hover {
+    background: #138496;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(23,162,184,0.3);
+}
+
+/* DevExtreme Popup */
+.dx-popup {
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.dx-popup-title {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    border-radius: 8px 8px 0 0;
+}
+
+/* DevExtreme Form */
+.dx-form {
+    padding: 20px;
+}
+
+.dx-field-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.dx-field-value {
+    margin-bottom: 15px;
+}
+
+.dx-texteditor {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: all 0.2s ease;
+}
+
+.dx-texteditor:focus-within {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+/* DevExtreme Validation */
+.dx-invalid {
+    border-color: #dc3545 !important;
+}
+
+.dx-invalid-message {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* DevExtreme Loading Indicator */
+.dx-loadindicator {
+    color: #007bff;
+}
+
+.dx-loadindicator-icon {
+    border-color: #007bff transparent transparent transparent;
+}
+
+/* DevExtreme Scrollbar */
+.dx-scrollable-scrollbar {
+    background: #f8f9fa;
+}
+
+.dx-scrollable-scroll {
+    background: #dee2e6;
+    border-radius: 4px;
+}
+
+.dx-scrollable-scroll:hover {
+    background: #adb5bd;
+}
+
+/* DevExtreme Responsive */
+@media (max-width: 768px) {
+    .dx-datagrid-container {
+        margin: 0 -15px;
+        border-radius: 0;
+    }
+    
+    .dx-datagrid-headers .dx-header-cell {
+        padding: 8px 4px !important;
+        font-size: 12px;
+    }
+    
+    .dx-data-cell {
+        padding: 8px 4px !important;
+        font-size: 12px;
+    }
+}
+
+/* DevExtreme Custom Badges */
+.dx-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dx-badge-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.dx-badge-danger {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.dx-badge-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.dx-badge-info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.dx-badge-primary {
+    background: #cce7ff;
+    color: #004085;
+}
+
+/* DevExtreme Action Buttons */
+.dx-action-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+}
+
+.dx-action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.dx-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.dx-action-btn-view {
+    background: #17a2b8;
+    color: white;
+}
+
+.dx-action-btn-edit {
+    background: #007bff;
+    color: white;
+}
+
+.dx-action-btn-delete {
+    background: #dc3545;
+    color: white;
+}
+
+.dx-action-btn-roles {
+    background: #6f42c1;
+    color: white;
+}
+
+.dx-action-btn-permissions {
+    background: #fd7e14;
+    color: white;
+}
+
+/* DevExtreme Empty State */
+.dx-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.dx-empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.dx-empty-state h4 {
+    margin-bottom: 8px;
+    color: #495057;
+}
+
+.dx-empty-state p {
+    margin-bottom: 0;
+    font-size: 14px;
+}
+
+/* DevExtreme Loading State */
+.dx-loading-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.dx-loading-state i {
+    font-size: 32px;
+    margin-bottom: 16px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* DevExtreme Error State */
+.dx-error-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #dc3545;
+}
+
+.dx-error-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.dx-error-state h4 {
+    margin-bottom: 8px;
+    color: #dc3545;
+}
+
+.dx-error-state p {
+    margin-bottom: 0;
+    font-size: 14px;
+}
+
+/* DevExtreme Success State */
+.dx-success-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #28a745;
+}
+
+.dx-success-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.dx-success-state h4 {
+    margin-bottom: 8px;
+    color: #28a745;
+}
+
+.dx-success-state p {
+    margin-bottom: 0;
+    font-size: 14px;
+}
+

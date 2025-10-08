@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Entities.Entity
 {
-    public class UserRole
+    public class UserMenu
     {
         [Key]
         public int Id { get; set; }
@@ -11,7 +11,7 @@ namespace Entities.Entity
         public int UserId { get; set; }
 
         [Required]
-        public int RoleId { get; set; }
+        public int MenuId { get; set; }
 
         public DateTime AssignedDate { get; set; } = DateTime.Now;
 
@@ -26,7 +26,7 @@ namespace Entities.Entity
 
         // Navigation Properties
         public virtual User User { get; set; } = null!;
-        public virtual Role Role { get; set; } = null!;
+        public virtual Menu Menu { get; set; } = null!;
         public virtual User? AssignedByUser { get; set; }
     }
 }
