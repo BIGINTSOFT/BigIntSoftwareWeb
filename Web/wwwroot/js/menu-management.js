@@ -1,165 +1,342 @@
+// Menu Management JavaScript with DevExtreme - Complete Implementation
 $(document).ready(function() {
-    // DataTable initialization
-    var table = $('#menusTable').DataTable({
-        "processing": true,
-        "serverSide": false,
-        "ajax": {
-            "url": "/Menu/GetMenus",
-            "type": "GET",
-            "dataSrc": function(json) {
-                return json.data;
+    initializeMenuManagement();
+});
+
+function initializeMenuManagement() {
+    let menusDataGrid;
+    let currentMenuId = null;
+    let isEditMode = false;
+
+    // Initialize DevExtreme DataGrid
+    function initDataGrid() {
+        menusDataGrid = $("#menusDataGrid").dxDataGrid({
+            dataSource: {
+                load: function(loadOptions) {
+                    return $.ajax({
+                        url: '/Menu/GetMenus',
+                        type: 'GET',
+                        dataType: 'json'
+                    }).then(function(response) {
+                        return {
+                            data: response.data || [],
+                            totalCount: response.data ? response.data.length : 0
+                        };
+                    });
+                }
             },
-            "error": function(xhr, error, thrown) {
-                console.error('DataTables AJAX error:', error, thrown);
+            showBorders: true,
+            showRowLines: true,
+            showColumnLines: false,
+            rowAlternationEnabled: true,
+            hoverStateEnabled: true,
+            allowColumnReordering: true,
+            allowColumnResizing: true,
+            columnAutoWidth: true,
+            wordWrapEnabled: true,
+            columnHidingEnabled: false,
+            scrolling: { 
+                columnRenderingMode: 'virtual', 
+                showScrollbar: 'onHover',
+                mode: 'standard'
+            },
+            columnChooser: {
+                enabled: true,
+                mode: 'select'
+            },
+            searchPanel: {
+                visible: true,
+                width: 240,
+                placeholder: 'Ara...'
+            },
+            filterRow: {
+                visible: true
+            },
+            headerFilter: {
+                visible: true
+            },
+            paging: {
+                pageSize: 20,
+                pageSizes: [10, 20, 50, 100]
+            },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 20, 50, 100],
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            export: {
+                enabled: true,
+                fileName: 'MenuListesi',
+                allowExportSelectedData: true
+            },
+            selection: {
+                mode: 'multiple'
+            },
+            columns: [
+                {
+                    dataField: 'Id',
+                    caption: 'ID',
+                    width: 60,
+                    alignment: 'center'
+                },
+                {
+                    dataField: 'Name',
+                    caption: 'Menü Adı',
+                    width: 150
+                },
+                {
+                    dataField: 'Icon',
+                    caption: 'İkon',
+                    width: 80,
+                    alignment: 'center',
+                    cellTemplate: function(container, options) {
+                        const icon = options.value || 'bi bi-circle';
+                        container.append(`<i class="${icon}"></i>`);
+                    }
+                },
+                {
+                    caption: 'Controller/Action',
+                    width: 150,
+                    cellTemplate: function(container, options) {
+                        const controller = options.data.Controller || '';
+                        const action = options.data.Action || '';
+                        container.append(`${controller}/${action}`);
+                    }
+                },
+                {
+                    dataField: 'ParentId',
+                    caption: 'Üst Menü',
+                    width: 80,
+                    alignment: 'center',
+                    cellTemplate: function(container, options) {
+                        const parentId = options.value;
+                        if (parentId && parentId > 0) {
+                            container.append(`<span class="badge bg-info">${parentId}</span>`);
+                        } else {
+                            container.append('<span class="text-muted">-</span>');
+                        }
+                    }
+                },
+                {
+                    dataField: 'SortOrder',
+                    caption: 'Sıra',
+                    width: 60,
+                    alignment: 'center'
+                },
+                {
+                    dataField: 'IsActive',
+                    caption: 'Durum',
+                    width: 80,
+                    alignment: 'center',
+                    cellTemplate: function(container, options) {
+                        const isActive = options.value;
+                        const badgeClass = isActive ? 'dx-badge-success' : 'dx-badge-danger';
+                        const text = isActive ? 'Aktif' : 'Pasif';
+                        container.append(`<span class="dx-badge ${badgeClass}">${text}</span>`);
+                    }
+                },
+                {
+                    dataField: 'IsVisible',
+                    caption: 'Görünür',
+                    width: 80,
+                    alignment: 'center',
+                    cellTemplate: function(container, options) {
+                        const isVisible = options.value;
+                        const badgeClass = isVisible ? 'dx-badge-success' : 'dx-badge-warning';
+                        const text = isVisible ? 'Evet' : 'Hayır';
+                        container.append(`<span class="dx-badge ${badgeClass}">${text}</span>`);
+                    }
+                },
+                {
+                    dataField: 'CreatedDate',
+                    caption: 'Oluşturulma',
+                    width: 120,
+                    dataType: 'datetime',
+                    format: 'dd/MM/yyyy HH:mm'
+                },
+                {
+                    caption: 'İşlemler',
+                    width: 100,
+                    alignment: 'center',
+                    allowSorting: false,
+                    allowFiltering: false,
+                    allowHeaderFiltering: false,
+                    cellTemplate: function(container, options) {
+                        const menu = options.data;
+                        const actionsContainer = $('<div>').addClass('dx-action-buttons');
+                        
+                        if (window.menuPermissions && window.menuPermissions.canView) {
+                            const viewBtn = $('<button>')
+                                .addClass('dx-action-btn dx-action-btn-view')
+                                .attr('title', 'Görüntüle')
+                                .html('<i class="bi bi-eye"></i>')
+                                .on('click', function() {
+                                    viewMenu(parseInt(menu.Id));
+                                });
+                            actionsContainer.append(viewBtn);
+                        }
+                        
+                        if (window.menuPermissions && window.menuPermissions.canEdit) {
+                            const editBtn = $('<button>')
+                                .addClass('dx-action-btn dx-action-btn-edit')
+                                .attr('title', 'Düzenle')
+                                .html('<i class="bi bi-pencil"></i>')
+                                .on('click', function() {
+                                    editMenu(parseInt(menu.Id));
+                                });
+                            actionsContainer.append(editBtn);
+                        }
+                        
+                        if (window.menuPermissions && window.menuPermissions.canDelete) {
+                            const deleteBtn = $('<button>')
+                                .addClass('dx-action-btn dx-action-btn-delete')
+                                .attr('title', 'Sil')
+                                .html('<i class="bi bi-trash"></i>')
+                                .on('click', function() {
+                                    deleteMenu(parseInt(menu.Id));
+                                });
+                            actionsContainer.append(deleteBtn);
+                        }
+                        
+                        container.append(actionsContainer);
+                    }
+                }
+            ],
+            onRowClick: function(e) {
+                // Row click event if needed
+            },
+            onSelectionChanged: function(e) {
+                // Selection changed event if needed
+            },
+            onExporting: function(e) {
+                // Custom export logic if needed
             }
-        },
-        "columns": [
-            { "data": "Id" },
-            { "data": "Name" },
-            { 
-                "data": "Icon",
-                "render": function(data, type, row) {
-                    return data ? `<i class="${data}"></i> ${data}` : '-';
-                }
-            },
-            { 
-                "data": null,
-                "render": function(data, type, row) {
-                    var controller = row.Controller || '';
-                    var action = row.Action || '';
-                    return controller && action ? `${controller}/${action}` : '-';
-                }
-            },
-            { 
-                "data": "ParentId",
-                "render": function(data, type, row) {
-                    return data ? `Menü ID: ${data}` : 'Ana Menü';
-                }
-            },
-            { "data": "SortOrder" },
-            { 
-                "data": "IsActive",
-                "render": function(data, type, row) {
-                    return data ? 
-                        '<span class="badge bg-success">Aktif</span>' : 
-                        '<span class="badge bg-danger">Pasif</span>';
-                }
-            },
-            {
-                "data": null,
-                "orderable": false,
-                "render": function(data, type, row) {
-                    return `
-                        <button class="btn btn-sm btn-outline-info view-permissions" data-id="${row.Id}" title="Yetkileri Görüntüle">
-                            <i class="bi bi-shield-check"></i>
-                        </button>
-                    `;
-                }
-            },
-            {
-                "data": null,
-                "orderable": false,
-                "render": function(data, type, row) {
-                    return `
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-primary edit-menu" data-id="${row.Id}">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger delete-menu" data-id="${row.Id}">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-        ],
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json"
-        }
-    });
+        }).dxDataGrid('instance');
+    }
 
     // Add Menu Button
     $('#addMenuBtn').click(function() {
-        $('#menuModalLabel').text('Yeni Menü Ekle');
+        if (!window.menuPermissions || !window.menuPermissions.canCreate) {
+            showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
+            return;
+        }
+        
+        isEditMode = false;
+        currentMenuId = null;
+        $('#menuModalLabel').text('Yeni Menü');
         $('#menuForm')[0].reset();
         $('#menuId').val('');
-        $('#menuModal').modal('show');
+        showSlideModal();
     });
 
-    // Edit Menu Button
-    $(document).on('click', '.edit-menu', function() {
-        var menuId = $(this).data('id');
-        loadMenu(menuId);
+    // Refresh Button
+    $('#refreshBtn').click(function() {
+        menusDataGrid.refresh();
+        showAlert('Tablo yenilendi', 'success');
     });
 
-    // Delete Menu Button
-    $(document).on('click', '.delete-menu', function() {
-        var menuId = $(this).data('id');
-        if (confirm('Bu menüyü silmek istediğinizden emin misiniz?')) {
-            deleteMenu(menuId);
+    // Export Button
+    $('#exportBtn').click(function() {
+        try {
+            if (menusDataGrid && typeof menusDataGrid.exportToExcel === 'function') {
+                menusDataGrid.exportToExcel({
+                    fileName: 'MenuListesi_' + new Date().toISOString().split('T')[0],
+                    autoFilterEnabled: true
+                });
+            } else {
+                showAlert('Excel export özelliği şu anda kullanılamıyor.', 'warning');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            showAlert('Excel export sırasında hata oluştu.', 'error');
         }
     });
 
-    // Save Menu Button
-    $('#saveMenuBtn').click(function() {
-        saveMenu();
-    });
-
-    // Cancel Menu Button
-    $('#cancelMenuBtn').click(function() {
-        $('#menuModal').modal('hide');
-    });
-
-    // Load Menu Data
-    function loadMenu(id) {
-        console.log('🔍 Loading menu for edit, menuId:', id);
-        $.ajax({
-            url: '/Menu/GetMenu/' + id,
-            type: 'GET',
-            success: function(response) {
-                console.log('✅ Menu edit data response:', response);
-                if (response.success) {
-                    var data = response.data;
-                    $('#menuModalLabel').text('Menü Düzenle');
-                    $('#menuId').val(data.Id);
-                    $('#menuName').val(data.Name);
-                    $('#menuDescription').val(data.Description);
-                    $('#menuIcon').val(data.Icon);
-                    $('#menuController').val(data.Controller);
-                    $('#menuAction').val(data.Action);
-                    $('#menuSortOrder').val(data.SortOrder);
-                    $('#menuIsActive').prop('checked', data.IsActive);
-                    $('#menuIsVisible').prop('checked', data.IsVisible);
-                    $('#menuModal').modal('show');
-                    console.log('✅ Menu edit form populated');
+    // Menu Action Functions
+    function viewMenu(menuId) {
+        if (!window.menuPermissions || !window.menuPermissions.canView) {
+            showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
+            return;
+        }
+        
+        $.get('/Menu/GetMenu/' + menuId)
+            .done(function(response) {
+                if (response.data) {
+                    const menu = response.data;
+                    showMenuDetails(menu);
                 } else {
-                    console.error('❌ Menu edit error:', response.error);
-                    showAlert('Menü bilgileri yüklenirken hata oluştu!', 'error');
+                    showAlert('Menü bilgileri alınamadı', 'error');
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('❌ Menu edit AJAX error:', error);
-                showAlert('Menü bilgileri yüklenirken hata oluştu!', 'error');
-            }
-        });
+            })
+            .fail(function() {
+                showAlert('Menü bilgileri alınamadı', 'error');
+            });
+    }
+
+    function editMenu(menuId) {
+        if (!window.menuPermissions || !window.menuPermissions.canEdit) {
+            showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
+            return;
+        }
+        
+        isEditMode = true;
+        currentMenuId = menuId;
+        
+        $.get('/Menu/GetMenu/' + menuId)
+            .done(function(response) {
+                if (response.data) {
+                    $('#menuModalLabel').text('Menü Düzenle');
+                    $('#menuId').val(response.data.Id);
+                    $('#menuName').val(response.data.Name);
+                    $('#menuDescription').val(response.data.Description);
+                    $('#menuIcon').val(response.data.Icon);
+                    $('#menuController').val(response.data.Controller);
+                    $('#menuAction').val(response.data.Action);
+                    $('#menuUrl').val(response.data.Url);
+                    $('#menuParentId').val(response.data.ParentId);
+                    $('#menuSortOrder').val(response.data.SortOrder);
+                    $('#menuIsActive').prop('checked', response.data.IsActive);
+                    $('#menuIsVisible').prop('checked', response.data.IsVisible);
+                    showSlideModal();
+                } else {
+                    showAlert('Menü bilgileri alınamadı', 'error');
+                }
+            })
+            .fail(function() {
+                showAlert('Menü bilgileri alınamadı', 'error');
+            });
+    }
+
+    function deleteMenu(menuId) {
+        if (!window.menuPermissions || !window.menuPermissions.canDelete) {
+            showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
+            return;
+        }
+        
+        currentMenuId = menuId;
+        $('#deleteModal').modal('show');
     }
 
     // Save Menu
-    function saveMenu() {
-        var formData = {
-            Id: $('#menuId').val(),
+    $('#saveMenuBtn').click(function() {
+        if (validateForm()) {
+            const formData = {
+                Id: $('#menuId').val() || 0,
             Name: $('#menuName').val(),
             Description: $('#menuDescription').val(),
             Icon: $('#menuIcon').val(),
             Controller: $('#menuController').val(),
             Action: $('#menuAction').val(),
-            SortOrder: parseInt($('#menuSortOrder').val()) || 0,
+                Url: $('#menuUrl').val(),
+                ParentId: $('#menuParentId').val() || null,
+                SortOrder: $('#menuSortOrder').val() || 0,
             IsActive: $('#menuIsActive').is(':checked'),
             IsVisible: $('#menuIsVisible').is(':checked')
         };
 
-        var url = formData.Id ? '/Menu/Update' : '/Menu/Create';
-        var method = 'POST';
+            const url = isEditMode ? '/Menu/Update' : '/Menu/Create';
+            const method = 'POST';
 
         $.ajax({
             url: url,
@@ -168,432 +345,227 @@ $(document).ready(function() {
             data: JSON.stringify(formData),
             success: function(response) {
                 if (response.success) {
+                        hideSlideModal();
+                        menusDataGrid.refresh();
                     showAlert(response.message, 'success');
-                    $('#menuModal').modal('hide');
-                    table.ajax.reload();
                 } else {
-                    showAlert(response.error, 'error');
+                        showAlert(response.message || response.error, 'error');
                 }
             },
             error: function(xhr) {
-                var response = xhr.responseJSON;
-                if (response && response.errors) {
-                    showAlert(response.errors.join('<br>'), 'error');
-                } else {
-                    showAlert('Menü kaydedilirken hata oluştu!', 'error');
+                    const response = xhr.responseJSON;
+                    showAlert(response ? (response.message || response.error) : 'Bir hata oluştu', 'error');
                 }
-            }
-        });
-    }
+            });
+        }
+    });
 
-    // Delete Menu
-    function deleteMenu(id) {
+    // Confirm Delete
+    $('#confirmDeleteBtn').click(function() {
         $.ajax({
-            url: '/Menu/Delete/' + id,
-            type: 'DELETE',
+            url: '/Menu/Delete/' + currentMenuId,
+            type: 'POST',
             success: function(response) {
                 if (response.success) {
+                    $('#deleteModal').modal('hide');
+                    menusDataGrid.refresh();
                     showAlert(response.message, 'success');
-                    table.ajax.reload();
                 } else {
-                    showAlert(response.error, 'error');
+                    showAlert(response.message || response.error, 'error');
                 }
             },
-            error: function() {
-                showAlert('Menü silinirken hata oluştu!', 'error');
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showAlert(response ? (response.message || response.error) : 'Bir hata oluştu', 'error');
             }
         });
-    }
+    });
 
     // Form Validation
-    $('#menuForm').on('submit', function(e) {
-        e.preventDefault();
-        saveMenu();
-    });
+    function validateForm() {
+        let isValid = true;
+        
+        // Clear previous validation
+        $('.form-control').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
 
-    // View Permissions Button Click
-    $(document).on('click', '.view-permissions', function() {
-        var menuId = $(this).data('id');
-        openMenuPermissionsModal(menuId);
-    });
+        // Required fields
+        const requiredFields = ['menuName'];
 
-    // Menu Permissions Modal Functions
-    function openMenuPermissionsModal(menuId) {
-        $('#menuPermissionsModal').modal('show');
-        
-        // Menü bilgilerini yükle
-        loadMenuInfo(menuId);
-        
-        // Kullanıcı yetkilerini yükle
-        loadMenuUserPermissions(menuId);
-        loadAvailableUsersForMenuPermission(menuId);
-        
-        // Rol yetkilerini yükle
-        loadMenuRolePermissions(menuId);
-        loadAvailableRolesForMenuPermission(menuId);
-        
-        // Store current menu ID
-        $('#menuPermissionsModal').data('menu-id', menuId);
-    }
-
-    function loadMenuInfo(menuId) {
-        $.ajax({
-            url: '/Menu/GetMenu',
-            type: 'GET',
-            data: { id: menuId },
-            success: function(response) {
-                if (response.success) {
-                    displayMenuInfo(response.data);
-                } else {
-                    showMenuModalAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showMenuModalAlert('Menü bilgileri yüklenirken hata oluştu!', 'error');
+        requiredFields.forEach(function(field) {
+            const value = $('#' + field).val().trim();
+            if (!value) {
+                $('#' + field).addClass('is-invalid');
+                $('#' + field).siblings('.invalid-feedback').text('Bu alan gereklidir');
+                isValid = false;
             }
         });
+
+        return isValid;
     }
 
-    function displayMenuInfo(menu) {
-        $('#modalMenuName').text(menu.Name || '-');
-        var controllerAction = '';
-        if (menu.Controller && menu.Action) {
-            controllerAction = `${menu.Controller}/${menu.Action}`;
-        } else if (menu.Controller) {
-            controllerAction = menu.Controller;
-        } else {
-            controllerAction = '-';
-        }
-        $('#modalMenuControllerAction').text(controllerAction);
+    // Slide Modal Functions
+    function showSlideModal() {
+        const modal = $('#menuModal');
+        const modalDialog = modal.find('.modal-dialog-slide');
         
-        var statusBadge = menu.IsActive ? 
-            '<span class="badge bg-success">Aktif</span>' : 
-            '<span class="badge bg-danger">Pasif</span>';
-        $('#modalMenuStatus').html(statusBadge);
-    }
-
-    function showMenuModalAlert(message, type) {
-        var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-        $('#menuModalAlert')
-            .removeClass('alert-success alert-danger')
-            .addClass(alertClass)
-            .find('#menuModalAlertMessage')
-            .text(message);
-        $('#menuModalAlert').show();
+        // Add backdrop
+        $('body').append('<div class="modal-backdrop fade show" id="modalBackdrop"></div>');
         
-        // 3 saniye sonra otomatik gizle
+        // Show modal
+        modal.addClass('show');
+        modal.attr('aria-hidden', 'false');
+        modal.css('display', 'block');
+        
+        // Trigger slide animation
         setTimeout(function() {
-            $('#menuModalAlert').fadeOut();
-        }, 3000);
+            modalDialog.addClass('show');
+        }, 10);
+        
+        // Prevent body scroll
+        $('body').addClass('modal-open');
+    }
+    
+    function hideSlideModal() {
+        const modal = $('#menuModal');
+        const modalDialog = modal.find('.modal-dialog-slide');
+        
+        // Hide slide animation
+        modalDialog.removeClass('show');
+        
+        // Wait for animation to complete
+        setTimeout(function() {
+            modal.removeClass('show');
+            modal.attr('aria-hidden', 'true');
+            modal.css('display', 'none');
+            
+            // Remove backdrop
+            $('#modalBackdrop').remove();
+            
+            // Restore body scroll
+            $('body').removeClass('modal-open');
+        }, 300);
+    }
+    
+    // Close modal on backdrop click
+    $(document).on('click', '#modalBackdrop', function() {
+        hideSlideModal();
+    });
+    
+    // Close modal on escape key
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape' && $('#menuModal').hasClass('show')) {
+            hideSlideModal();
+        }
+    });
+    
+    // Close modal on close button
+    $(document).on('click', '.btn-close', function() {
+        hideSlideModal();
+    });
+    
+    // Close modal on cancel button
+    $(document).on('click', '#cancelMenuBtn', function() {
+        hideSlideModal();
+    });
+
+    function showAlert(message, type) {
+        const alertClass = type === 'success' ? 'alert-success' : (type === 'warning' ? 'alert-warning' : 'alert-danger');
+        const alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+            message +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+            '</div>';
+        
+        // Remove existing alerts
+        $('.alert').remove();
+        
+        // Add new alert
+        $('.card-body').prepend(alertHtml);
+        
+        // Auto remove after 5 seconds
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 5000);
     }
 
-    // User Permissions Tab - Yeni ERP yapısında bu endpoint'ler yok, sadece bilgi gösterimi
-    function loadMenuUserPermissions(menuId) {
-        // Yeni ERP yapısında kullanıcılar direkt menü yetkisi almaz, rol üzerinden alır
-        $('#assignedUsersPermissionsList').html(`
-            <div class="empty-state">
-                <i class="bi bi-info-circle"></i>
-                <p class="mb-0">Yeni ERP yapısında kullanıcılar rol üzerinden menü yetkisi alır</p>
-            </div>
-        `);
-    }
-
-    function loadAvailableUsersForMenuPermission(menuId, search = '') {
-        // Yeni ERP yapısında kullanıcılar direkt menü yetkisi almaz
-        $('#availableUsersPermissionsList').html(`
-            <div class="empty-state">
-                <i class="bi bi-info-circle"></i>
-                <p class="mb-0">Kullanıcılara rol atayarak menü yetkisi verin</p>
-            </div>
-        `);
-    }
-
-    function displayAssignedUserPermissions(users) {
-        var html = '';
-        if (users.length === 0) {
-            html = `
-                <div class="empty-state">
-                    <i class="bi bi-people"></i>
-                    <p class="mb-0">Bu menüye yetkili kullanıcı bulunmuyor</p>
-                </div>
-            `;
-        } else {
-            users.forEach(function(user) {
-                var fullName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
-                var sourceBadge = user.source === 'Role' ? 
-                    '<span class="badge bg-primary me-2">Rol</span>' : 
-                    '<span class="badge bg-success me-2">Direkt</span>';
-                
-                var removeButton = user.source === 'Direct' ? 
-                    `<button class="btn btn-sm btn-outline-danger remove-user-permission" data-user-id="${user.id}" title="Yetkiyi Kaldır">
-                        <i class="bi bi-x"></i>
-                    </button>` : 
-                    `<span class="text-muted small">Rol bazlı yetki</span>`;
-                
-                html += `
-                    <div class="role-item d-flex justify-content-between align-items-center p-3 bg-light border rounded mb-2">
-                        <div class="role-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-person-circle text-primary me-2"></i>
-                                <span class="fw-bold">${fullName || '-'}</span>
-                                ${sourceBadge}
-                            </div>
-                            <div class="role-description">@${user.username} • ${user.email || '-'}</div>
+    // Menu Details Modal
+    function showMenuDetails(menu) {
+        const modalHtml = `
+            <div class="modal fade" id="menuDetailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Menü Detayları</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="role-actions">
-                            ${removeButton}
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Menü Bilgileri</h6>
+                                    <p><strong>ID:</strong> ${menu.Id}</p>
+                                    <p><strong>Menü Adı:</strong> ${menu.Name}</p>
+                                    <p><strong>Açıklama:</strong> ${menu.Description || '-'}</p>
+                                    <p><strong>İkon:</strong> <i class="${menu.Icon || 'bi bi-circle'}"></i> ${menu.Icon || '-'}</p>
+                                    <p><strong>URL:</strong> ${menu.Url || '-'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Teknik Bilgiler</h6>
+                                    <p><strong>Controller:</strong> ${menu.Controller || '-'}</p>
+                                    <p><strong>Action:</strong> ${menu.Action || '-'}</p>
+                                    <p><strong>Üst Menü ID:</strong> ${menu.ParentId || '-'}</p>
+                                    <p><strong>Sıra:</strong> ${menu.SortOrder}</p>
+                                    <p><strong>Durum:</strong> <span class="badge ${menu.IsActive ? 'bg-success' : 'bg-danger'}">${menu.IsActive ? 'Aktif' : 'Pasif'}</span></p>
+                                    <p><strong>Görünür:</strong> <span class="badge ${menu.IsVisible ? 'bg-success' : 'bg-warning'}">${menu.IsVisible ? 'Evet' : 'Hayır'}</span></p>
+                        </div>
+                    </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <h6>Zaman Bilgileri</h6>
+                                    <p><strong>Oluşturulma:</strong> ${menu.CreatedDate ? new Date(menu.CreatedDate).toLocaleString('tr-TR') : '-'}</p>
+                                    <p><strong>Son Güncelleme:</strong> ${menu.UpdatedDate ? new Date(menu.UpdatedDate).toLocaleString('tr-TR') : '-'}</p>
+                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                        </div>
+                    </div>
                         </div>
                     </div>
                 `;
-            });
-        }
-        $('#assignedUsersPermissionsList').html(html);
-    }
-
-    function displayAvailableUserPermissions(users) {
-        var html = '';
-        if (users.length === 0) {
-            html = `
-                <div class="empty-state">
-                    <i class="bi bi-person-plus"></i>
-                    <p class="mb-0">Eklenecek kullanıcı bulunamadı</p>
-                </div>
-            `;
-        } else {
-            users.forEach(function(user) {
-                var fullName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
-                var statusBadge = user.isActive ? 
-                    '<span class="badge bg-success me-2">Aktif</span>' : 
-                    '<span class="badge bg-danger me-2">Pasif</span>';
-                
-                html += `
-                    <div class="role-item d-flex justify-content-between align-items-center p-3 bg-white border rounded mb-2">
-                        <div class="role-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-person-circle text-success me-2"></i>
-                                <span class="fw-bold">${fullName || '-'}</span>
-                                ${statusBadge}
-                            </div>
-                            <div class="role-description">@${user.username} • ${user.email || '-'}</div>
-                        </div>
-                        <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-success add-user-permission" data-user-id="${user.id}" title="Yetki Ekle">
-                                <i class="bi bi-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        $('#availableUsersPermissionsList').html(html);
-    }
-
-    // Role Permissions Tab - Yeni ERP yapısında bu endpoint'ler yok, sadece bilgi gösterimi
-    function loadMenuRolePermissions(menuId) {
-        // Yeni ERP yapısında menüler rol yetkileri RoleController'da yönetilir
-        $('#assignedRolesPermissionsList').html(`
-            <div class="empty-state">
-                <i class="bi bi-info-circle"></i>
-                <p class="mb-0">Menü yetkileri Rol Yönetimi sayfasından yönetilir</p>
-            </div>
-        `);
-    }
-
-    function loadAvailableRolesForMenuPermission(menuId, search = '') {
-        // Yeni ERP yapısında menü yetkileri RoleController'da yönetilir
-        $('#availableRolesPermissionsList').html(`
-            <div class="empty-state">
-                <i class="bi bi-info-circle"></i>
-                <p class="mb-0">Rol Yönetimi sayfasından menü yetkilerini yönetin</p>
-            </div>
-        `);
-    }
-
-    function displayAssignedRolePermissions(roles) {
-        var html = '';
-        if (roles.length === 0) {
-            html = `
-                <div class="empty-state">
-                    <i class="bi bi-shield"></i>
-                    <p class="mb-0">Bu menüye yetkili rol bulunmuyor</p>
-                </div>
-            `;
-        } else {
-            roles.forEach(function(role) {
-                var statusBadge = role.isActive ? 
-                    '<span class="badge bg-success me-2">Aktif</span>' : 
-                    '<span class="badge bg-danger me-2">Pasif</span>';
-                
-                html += `
-                    <div class="role-item d-flex justify-content-between align-items-center p-3 bg-light border rounded mb-2">
-                        <div class="role-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-shield-fill text-warning me-2"></i>
-                                <span class="fw-bold">${role.name}</span>
-                                ${statusBadge}
-                            </div>
-                            <div class="role-description">${role.description || 'Açıklama bulunmuyor'}</div>
-                        </div>
-                        <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-danger remove-role-permission" data-role-id="${role.id}" title="Yetkiyi Kaldır">
-                                <i class="bi bi-x"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        $('#assignedRolesPermissionsList').html(html);
-    }
-
-    function displayAvailableRolePermissions(roles) {
-        var html = '';
-        if (roles.length === 0) {
-            html = `
-                <div class="empty-state">
-                    <i class="bi bi-shield-plus"></i>
-                    <p class="mb-0">Eklenecek rol bulunamadı</p>
-                </div>
-            `;
-        } else {
-            roles.forEach(function(role) {
-                var statusBadge = role.isActive ? 
-                    '<span class="badge bg-success me-2">Aktif</span>' : 
-                    '<span class="badge bg-danger me-2">Pasif</span>';
-                
-                html += `
-                    <div class="role-item d-flex justify-content-between align-items-center p-3 bg-white border rounded mb-2">
-                        <div class="role-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-shield-fill text-info me-2"></i>
-                                <span class="fw-bold">${role.name}</span>
-                                ${statusBadge}
-                            </div>
-                            <div class="role-description">${role.description || 'Açıklama bulunmuyor'}</div>
-                        </div>
-                        <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-success add-role-permission" data-role-id="${role.id}" title="Yetki Ekle">
-                                <i class="bi bi-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        $('#availableRolesPermissionsList').html(html);
-    }
-
-    // Tab Change Events
-    $('#roles-tab').on('click', function() {
-        var menuId = $('#menuPermissionsModal').data('menu-id');
-        loadMenuRolePermissions(menuId);
-        loadAvailableRolesForMenuPermission(menuId);
-    });
-
-    // User Permission Actions
-    $(document).on('click', '.add-user-permission', function() {
-        var userId = $(this).data('user-id');
-        var menuId = $('#menuPermissionsModal').data('menu-id');
         
-        $.ajax({
-            url: '/Menu/AssignUserToMenu',
-            type: 'POST',
-            data: { menuId: menuId, userId: userId },
-            success: function(response) {
-                if (response.success) {
-                    showAlert(response.message, 'success');
-                    loadMenuUserPermissions(menuId);
-                    loadAvailableUsersForMenuPermission(menuId);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Kullanıcı yetkisi verilirken hata oluştu!', 'error');
-            }
-        });
-    });
-
-    $(document).on('click', '.remove-user-permission', function() {
-        var userId = $(this).data('user-id');
-        var menuId = $('#menuPermissionsModal').data('menu-id');
+        // Remove existing modal if any
+        $('#menuDetailsModal').remove();
         
-        $.ajax({
-            url: '/Menu/RemoveUserFromMenu',
-            type: 'DELETE',
-            data: { menuId: menuId, userId: userId },
-            success: function(response) {
-                if (response.success) {
-                    showAlert(response.message, 'success');
-                    loadMenuUserPermissions(menuId);
-                    loadAvailableUsersForMenuPermission(menuId);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Kullanıcı yetkisi kaldırılırken hata oluştu!', 'error');
-            }
-        });
-    });
-
-    // Role Permission Actions
-    $(document).on('click', '.add-role-permission', function() {
-        var roleId = $(this).data('role-id');
-        var menuId = $('#menuPermissionsModal').data('menu-id');
+        // Add new modal to body
+        $('body').append(modalHtml);
         
-        $.ajax({
-            url: '/Menu/AssignRoleToMenu',
-            type: 'POST',
-            data: { menuId: menuId, roleId: roleId },
-            success: function(response) {
-                if (response.success) {
-                    showAlert(response.message, 'success');
-                    loadMenuRolePermissions(menuId);
-                    loadAvailableRolesForMenuPermission(menuId);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Rol yetkisi verilirken hata oluştu!', 'error');
-            }
-        });
-    });
-
-    $(document).on('click', '.remove-role-permission', function() {
-        var roleId = $(this).data('role-id');
-        var menuId = $('#menuPermissionsModal').data('menu-id');
+        // Show modal
+        $('#menuDetailsModal').modal('show');
         
-        $.ajax({
-            url: '/Menu/RemoveRoleFromMenu',
-            type: 'DELETE',
-            data: { menuId: menuId, roleId: roleId },
-            success: function(response) {
-                if (response.success) {
-                    showAlert(response.message, 'success');
-                    loadMenuRolePermissions(menuId);
-                    loadAvailableRolesForMenuPermission(menuId);
-                } else {
-                    showAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showAlert('Rol yetkisi kaldırılırken hata oluştu!', 'error');
-            }
+        // Remove modal from DOM when hidden
+        $('#menuDetailsModal').on('hidden.bs.modal', function() {
+            $(this).remove();
         });
-    });
+    }
 
-    // Search Functions
-    $('#userPermissionSearchInput').on('input', function() {
-        var search = $(this).val();
-        var menuId = $('#menuPermissionsModal').data('menu-id');
-        loadAvailableUsersForMenuPermission(menuId, search);
-    });
+    // Initialize
+    initDataGrid();
+}
 
-    $('#rolePermissionSearchInput').on('input', function() {
-        var search = $(this).val();
-        var menuId = $('#menuPermissionsModal').data('menu-id');
-        loadAvailableRolesForMenuPermission(menuId, search);
-    });
+// Responsive Design Enhancements
+$(window).resize(function() {
+    // Adjust modal sizes for mobile
+    if ($(window).width() < 768) {
+        $('.modal-dialog').removeClass('modal-lg modal-xl').addClass('modal-sm');
+    } else if ($(window).width() < 992) {
+        $('.modal-dialog').removeClass('modal-xl').addClass('modal-lg');
+    } else {
+        $('.modal-dialog').removeClass('modal-sm modal-lg').addClass('modal-xl');
+    }
+});
+
+// Initialize responsive behavior on page load
+$(document).ready(function() {
+    $(window).trigger('resize');
 });

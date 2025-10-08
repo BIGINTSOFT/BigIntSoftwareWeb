@@ -4,31 +4,25 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0">Rol Yönetimi</h1>
-    @if (await Context.RequestServices.HasPermissionAsync(User, "CREATE"))
-    {
-    <button class="btn btn-primary" id="addRoleBtn">
-        <i class="bi bi-plus-circle me-2"></i> Yeni Rol
-    </button>
-    }
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary" id="refreshBtn" title="Tabloyu Yenile">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+        <button class="btn btn-outline-success" id="exportBtn" title="Excel'e Aktar">
+            <i class="bi bi-file-earmark-excel"></i>
+        </button>
+        @if (await Context.RequestServices.HasPermissionAsync(User, "CREATE"))
+        {
+            <button class="btn btn-primary" id="addRoleBtn">
+                <i class="bi bi-plus-circle me-2"></i> Yeni Rol
+            </button>
+        }
+    </div>
 </div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <table id="rolesTable" class="table table-striped table-hover w-100">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Rol Adı</th>
-                    <th>Açıklama</th>
-                    <th>Durum</th>
-                    <th>Oluşturulma Tarihi</th>
-                    <th>Yetkiler</th>
-                    <th>İşlemler</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div id="rolesDataGrid"></div>
     </div>
 </div>
 
@@ -85,12 +79,12 @@
 
 <!-- Role Permissions Modal -->
 <div class="modal fade" id="rolePermissionsModal" tabindex="-1" aria-labelledby="rolePermissionsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-slide" style="max-width: 50%; width: 50%;">
+    <div class="modal-dialog modal-dialog-slide modal-xl">
         <div class="modal-content modern-modal">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="rolePermissionsModalLabel">
                     <i class="bi bi-shield-check me-2"></i>
-                    Rol Yetkileri
+                    Rol Menü Yetkileri
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -126,129 +120,53 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
-                <!-- Tabs -->
-                <ul class="nav nav-tabs" id="rolePermissionsTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="role-users-tab" data-bs-toggle="tab" data-bs-target="#role-users" type="button" role="tab">
-                            <i class="bi bi-people me-2"></i>Kullanıcılar
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="role-menus-tab" data-bs-toggle="tab" data-bs-target="#role-menus" type="button" role="tab">
-                            <i class="bi bi-list-ul me-2"></i>Menü Yetkileri
-                        </button>
-                    </li>
-                </ul>
-
-                <div class="tab-content" id="rolePermissionsTabContent">
-                    <!-- Role Users Tab -->
-                    <div class="tab-pane fade show active" id="role-users" role="tabpanel">
-                        <div class="mt-3">
-                            <div class="row">
-                                <!-- Atanmış Kullanıcılar -->
-                                <div class="col-lg-6">
-                                    <div class="card border-primary">
-                                        <div class="card-header bg-primary text-white">
-                                            <h6 class="mb-0">
-                                                <i class="bi bi-people-fill me-2"></i>
-                                                Bu Role Atanmış Kullanıcılar
-                                            </h6>
-                                        </div>
-                                        <div class="card-body p-0">
-                                            <div style="height: 400px; overflow-y: auto;">
-                                                <div id="assignedUsersList" class="p-3">
-                                                    <!-- AJAX ile doldurulacak -->
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Kullanıcı Ekleme -->
-                                <div class="col-lg-6">
-                                    <div class="card border-success">
-                                        <div class="card-header bg-success text-white">
-                                            <h6 class="mb-0">
-                                                <i class="bi bi-person-plus me-2"></i>
-                                                Yeni Kullanıcı Ekle
-                                            </h6>
-                                        </div>
-                                        <div class="card-body p-0">
-                                            <div class="p-3 border-bottom">
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text bg-light">
-                                                        <i class="bi bi-search"></i>
-                                                    </span>
-                                                    <input type="text" class="form-control form-control-sm" id="userSearchInput" 
-                                                           placeholder="Kullanıcı ara...">
-                                                </div>
-                                            </div>
-                                            <div style="height: 350px; overflow-y: auto;">
-                                                <div id="availableUsersList" class="p-3">
-                                                    <!-- AJAX ile doldurulacak -->
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                <div class="row">
+                    <!-- Atanmış Menü Yetkileri -->
+                    <div class="col-lg-6">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-list-check me-2"></i>
+                                    Bu Role Atanmış Menü Yetkileri
+                                </h6>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Role Menu Permissions Tab (Yeni ERP Yapısı) -->
-                    <div class="tab-pane fade" id="role-menus" role="tabpanel">
-                        <div class="mt-3">
-                            <div class="row">
-                                <!-- Atanmış Menü Yetkileri -->
-                                <div class="col-lg-6">
-                                    <div class="card border-warning">
-                                        <div class="card-header bg-warning text-dark">
-                                            <h6 class="mb-0">
-                                                <i class="bi bi-list-check me-2"></i>
-                                                Bu Role Atanmış Menü Yetkileri
-                                            </h6>
-                                        </div>
-                                        <div class="card-body p-0">
-                                            <div style="height: 400px; overflow-y: auto;">
-                                                <div id="assignedRoleMenuPermissionsList" class="p-3">
-                                                    <!-- AJAX ile doldurulacak -->
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Menü Yetkisi Ekleme -->
-                                <div class="col-lg-6">
-                                    <div class="card border-info">
-                                        <div class="card-header bg-info text-white">
-                                            <h6 class="mb-0">
-                                                <i class="bi bi-plus-circle me-2"></i>
-                                                Yeni Menü Yetkisi Ekle
-                                            </h6>
-                                        </div>
-                                        <div class="card-body p-0">
-                                            <div class="p-3 border-bottom">
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text bg-light">
-                                                        <i class="bi bi-search"></i>
-                                                    </span>
-                                                    <input type="text" class="form-control form-control-sm" id="roleMenuSearch" 
-                                                           placeholder="Menü ara...">
-                                                </div>
-                                            </div>
-                                            <div style="height: 350px; overflow-y: auto;">
-                                                <div id="availableMenusForRolePermissionList" class="p-3">
-                                                    <!-- AJAX ile doldurulacak -->
-                                                </div>
-                                            </div>
-                                        </div>
+                            <div class="card-body p-0">
+                                <div style="height: 500px; overflow-y: auto;">
+                                    <div id="assignedRoleMenuPermissionsList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
+                    <!-- Menü Yetkisi Ekleme -->
+                    <div class="col-lg-6">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    Yeni Menü Yetkisi Ekle
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="p-3 border-bottom">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm" id="roleMenuSearch" 
+                                               placeholder="Menü ara...">
+                                    </div>
+                                </div>
+                                <div style="height: 450px; overflow-y: auto;">
+                                    <div id="availableMenusForRolePermissionList" class="p-3">
+                                        <!-- AJAX ile doldurulacak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer bg-light">
@@ -261,17 +179,106 @@
     </div>
 </div>
 
+<!-- Role Edit Modal -->
+<div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-slide">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="roleModalLabel">
+                    <i class="bi bi-person-gear me-2"></i>
+                    Yeni Rol
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="roleForm">
+                    <input type="hidden" id="roleId" name="Id" value="0">
+                    
+                    <div class="mb-3">
+                        <label for="roleName" class="form-label">
+                            <i class="bi bi-person me-1"></i>
+                            Rol Adı <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="roleName" name="Name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="roleDescription" class="form-label">
+                            <i class="bi bi-card-text me-1"></i>
+                            Açıklama
+                        </label>
+                        <textarea class="form-control" id="roleDescription" name="Description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="roleIsActive" name="IsActive" checked>
+                            <label class="form-check-label" for="roleIsActive">
+                                <i class="bi bi-toggle-on me-1"></i>
+                                Aktif
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelRoleBtn">
+                    <i class="bi bi-x-lg me-1"></i>
+                    İptal
+                </button>
+                <button type="button" class="btn btn-primary" id="saveRoleBtn">
+                    <i class="bi bi-check-lg me-1"></i>
+                    Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Rol Silme Onayı
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bu rolü silmek istediğinizden emin misiniz?</p>
+                <p class="text-muted small">Bu işlem geri alınamaz ve rol ile ilişkili tüm yetkiler de silinecektir.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sil</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
+    <!-- DevExtreme CSS -->
+
+    
+    <!-- DevExtreme Common CSS -->
+    <link rel="stylesheet" href="~/css/devxtreme-common.css" />
+    
+    <!-- Role Management CSS -->
+    <link rel="stylesheet" href="~/css/role-management.css" />
+    
     <!-- Role Management JS -->
     <script src="~/js/role-management.js"></script>
+    
     <script>
         // View permission flags for Role page via dynamic menu resolution
         window.rolePermissions = {
-            canCreate: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "CREATE")),
-            canEdit: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "EDIT")),
-            canDelete: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "DELETE")),
-            canView: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "VIEW"))
+            canCreate: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "Role_Index_CREATE")),
+            canEdit: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "Role_Index_EDIT")),
+            canDelete: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "Role_Index_DELETE")),
+            canView: @Json.Serialize(await Context.RequestServices.HasPermissionAsync(User, "Role_Index_VIEW"))
         };
     </script>
 }

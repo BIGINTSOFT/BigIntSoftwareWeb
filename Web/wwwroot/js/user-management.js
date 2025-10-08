@@ -784,7 +784,8 @@ function initializeUserManagement() {
             url: '/User/GetAvailableMenusAndPermissionsForUser',
             type: 'GET',
             data: { userId: userId },
-            success: function(response) {
+            success: function (response) {
+                console.log(response);
                 if (response.success) {
                     let availableMenus = response.data;
                     
@@ -863,11 +864,19 @@ function initializeUserManagement() {
                                     <div class="mt-1">${permBadges}</div>
                     </div>
                                 <div class="ms-2">
+                                    <button class="btn btn-sm btn-outline-warning edit-menu-permissions me-1" 
+                                            data-menu-id="${menuId}"
+                                            data-menu-name="${menuData.menuName}"
+                                            title="Yetkileri Düzenle"
+                                            type="button">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-outline-danger remove-all-menu-permissions" 
                                             data-menu-id="${menuId}"
-                                            title="Tüm Yetkileri Kaldır">
+                                            title="Tüm Yetkileri Kaldır"
+                                            type="button">
                                         <i class="bi bi-trash"></i>
-                        </button>
+                                    </button>
                                 </div>
                             </div>
                     </div>
@@ -883,28 +892,34 @@ function initializeUserManagement() {
         if (menus.length === 0) {
             html = '<div class="text-muted text-center py-3 small">Eklenecek menü bulunamadı</div>';
         } else {
-        menus.forEach(function(menu) {
-            html += `
+            menus.forEach(function(menu) {
+                const availablePermCount = menu.availablePermissions ? menu.availablePermissions.length : 0;
+                const roleInfo = menu.hasAnyRolePermission ? '<span class="badge bg-info small">Rolden Kısmen</span>' : '';
+                
+                html += `
                     <div class="d-flex justify-content-between align-items-center p-2 border rounded mb-1 bg-white">
                         <div class="flex-grow-1">
                             <div class="fw-bold d-flex align-items-center small">
-                                <i class="${menu.Icon || 'bi bi-circle'} me-2 text-primary"></i>
-                                ${menu.Name || menu.name}
+                                <i class="${menu.menuIcon || 'bi bi-circle'} me-2 text-primary"></i>
+                                ${menu.menuName}
+                                ${roleInfo}
+                            </div>
+                            <small class="text-muted" style="font-size: 11px;">${menu.menuController}/${menu.menuAction || ''}</small>
+                            <div class="text-muted" style="font-size: 10px;">Eklenebilir: ${availablePermCount} yetki</div>
                         </div>
-                            <small class="text-muted" style="font-size: 11px;">${menu.Controller || menu.controller}/${menu.Action || menu.action || ''}</small>
-                    </div>
                         <div class="ms-2">
                             <button class="btn btn-sm btn-success add-user-menu-permission" 
-                                    data-menu-id="${menu.Id || menu.id}" 
-                                    data-menu-name="${menu.Name || menu.name}"
+                                    data-menu-id="${menu.menuId}" 
+                                    data-menu-name="${menu.menuName}"
+                                    data-available-permissions='${JSON.stringify(menu.availablePermissions)}'
                                     title="Menü ve Yetki Ekle">
                                 <i class="bi bi-plus-circle me-1"></i>
                                 Ekle
-                        </button>
+                            </button>
+                        </div>
                     </div>
-                </div>
-            `;
-        });
+                `;
+            });
         }
         $('#availableUserPermissionsList').html(html);
     }
@@ -987,6 +1002,67 @@ function initializeUserManagement() {
         showMenuPermissionSelectionModal(menuId, menuName, userId, availablePermissions);
     });
 
+    // Edit permissions for a specific menu
+    $(document).on('click', '.edit-menu-permissions', function(e) {
+
+        console.log('Edit button clicked'); // Debug log
+        
+        var menuId = $(this).data('menu-id');
+        var menuName = $(this).data('menu-name');
+        var userId = $('#userPermissionsModal').data('user-id');
+        
+        console.log('MenuId:', menuId, 'MenuName:', menuName, 'UserId:', userId); // Debug log
+        
+        if (!menuId || !userId) {
+            showPermissionModalAlert('Menü veya kullanıcı bilgisi bulunamadı', 'error');
+            return;
+        }
+        
+        // Get current permissions for this menu
+        $.ajax({
+            url: '/User/GetUserMenuPermissions',
+            type: 'GET',
+            data: { userId: userId },
+            success: function(response) {
+                console.log('Current permissions response:', response); // Debug log
+                if (response.success) {
+                    // Filter permissions for this specific menu
+                    var menuPermissions = response.data.filter(p => p.MenuId === menuId);
+                    console.log('Filtered menu permissions:', menuPermissions); // Debug log
+                    
+                    if (menuPermissions.length > 0) {
+                        // Get all permissions (not just available ones) for editing
+                        $.ajax({
+                            url: '/User/GetPermissions',
+                            type: 'GET',
+                            success: function(permissionsResponse) {
+                                console.log('All permissions response:', permissionsResponse); // Debug log
+                                if (permissionsResponse.success) {
+                                    // Show edit modal with all permissions and current permissions
+                                    showEditMenuPermissionModal(menuId, menuName, userId, menuPermissions, permissionsResponse.data);
+                                } else {
+                                    showPermissionModalAlert('Yetki bilgileri alınamadı', 'error');
+                                }
+                            },
+                            error: function(xhr) {
+                                console.error('Error loading all permissions:', xhr);
+                                showPermissionModalAlert('Yetki bilgileri alınamadı', 'error');
+                            }
+                        });
+                    } else {
+                        showPermissionModalAlert('Bu menü için atanmış yetki bulunamadı', 'warning');
+                    }
+                } else {
+                    showPermissionModalAlert('Yetki bilgileri alınamadı', 'error');
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading current permissions:', xhr);
+                showPermissionModalAlert('Yetki bilgileri alınamadı', 'error');
+            }
+        });
+    });
+
     // Remove all permissions for a specific menu
     $(document).on('click', '.remove-all-menu-permissions', function() {
         var menuId = $(this).data('menu-id');
@@ -1029,14 +1105,30 @@ function initializeUserManagement() {
     function showMenuPermissionSelectionModal(menuId, menuName, userId, availablePermissions) {
         // Direkt kullanılabilir permission'ları kullan (rollerden filtrelenmiş)
         if (availablePermissions && availablePermissions.length > 0) {
-            buildAndShowPermissionModal(menuId, menuName, userId, availablePermissions);
+            buildAndShowPermissionModal(menuId, menuName, userId, availablePermissions, 'add');
         } else {
             showPermissionModalAlert('Bu menü için eklenebilir yetki bulunmamaktadır. Tüm yetkiler rollerinizden gelmektedir.', 'warning');
         }
     }
+
+    // Edit Menu Permission Modal
+    function showEditMenuPermissionModal(menuId, menuName, userId, currentPermissions, allPermissions) {
+        console.log('showEditMenuPermissionModal called with:', {
+            menuId, menuName, userId, 
+            currentPermissions, 
+            allPermissions
+        }); // Debug log
+        
+        // Artık tüm permission'ları alıyoruz, birleştirme işlemi gereksiz
+        buildAndShowPermissionModal(menuId, menuName, userId, allPermissions, 'edit', currentPermissions);
+    }
     
     // Build and show modal with dynamic permissions - SLIDE FROM RIGHT
-    function buildAndShowPermissionModal(menuId, menuName, userId, permissions) {
+    function buildAndShowPermissionModal(menuId, menuName, userId, permissions, mode = 'add', currentPermissions = []) {
+        console.log('buildAndShowPermissionModal called with:', {
+            menuId, menuName, userId, permissions, mode, currentPermissions
+        }); // Debug log
+        
         // Permission checkboxları dinamik olarak oluştur
         let permissionCheckboxes = '';
         const iconMap = {
@@ -1044,8 +1136,15 @@ function initializeUserManagement() {
             'CREATE': 'bi-plus text-success',
             'EDIT': 'bi-pencil text-warning',
             'UPDATE': 'bi-pencil text-warning',
-            'DELETE': 'bi-trash text-danger'
+            'DELETE': 'bi-trash text-danger',
+            'EXPORT': 'bi-download text-info',
+            'IMPORT': 'bi-upload text-info',
+            'PRINT': 'bi-printer text-secondary',
+            'MANAGE': 'bi-gear text-dark'
         };
+        
+        // Mevcut permission'ları kontrol etmek için set oluştur
+        const currentPermissionIds = new Set(currentPermissions.map(p => p.PermissionId));
         
         permissions.forEach(function(permission, index) {
             const permName = permission.Name || permission.name || '';
@@ -1054,12 +1153,25 @@ function initializeUserManagement() {
             const permId = permission.Id || permission.id;
             const icon = iconMap[permCode.toUpperCase()] || 'bi-shield text-secondary';
             
+            // Düzenleme modunda mevcut yetkileri kontrol et
+            let isChecked = '';
+            if (mode === 'edit') {
+                // PermissionId ile kontrol et
+                const hasPermission = currentPermissionIds.has(permId);
+                // Eğer PermissionId bulunamazsa, PermissionLevel ile kontrol et
+                const hasPermissionByLevel = currentPermissions.some(p => p.PermissionLevel === permCode);
+                isChecked = (hasPermission || hasPermissionByLevel) ? 'checked' : '';
+                
+                console.log(`Permission ${permName} (${permCode}): hasPermission=${hasPermission}, hasPermissionByLevel=${hasPermissionByLevel}, isChecked=${isChecked}`); // Debug log
+            }
+            
             permissionCheckboxes += `
                 <div class="form-check">
                     <input class="form-check-input permission-checkbox" type="checkbox" 
                            id="permission_${permId}" 
                            value="${permCode}" 
-                           data-permission-id="${permId}">
+                           data-permission-id="${permId}"
+                           ${isChecked}>
                     <label class="form-check-label" for="permission_${permId}">
                         <i class="${icon} me-1"></i>
                         <strong>${permName}</strong>${permDesc ? ' - ' + permDesc : ''}
@@ -1068,14 +1180,16 @@ function initializeUserManagement() {
             `;
         });
         
+        console.log('Permission checkboxes created:', permissionCheckboxes.length, 'characters'); // Debug log
+        
         const modalHtml = `
-            <div class="modal fade" id="menuPermissionModal" tabindex="-1">
-                <div class="modal-dialog modal-dialog-slide-right modal-lg">
+            <div class="modal fade" id="menuPermissionModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-dialog modal-dialog-slide-right modal-xl">
                     <div class="modal-content">
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title">
                                 <i class="bi bi-gear me-2"></i>
-                                Menü ve Yetki Seçimi
+                                ${mode === 'edit' ? 'Menü Yetkilerini Düzenle' : 'Menü ve Yetki Seçimi'}
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
@@ -1115,16 +1229,16 @@ function initializeUserManagement() {
                             <div class="mt-3">
                                 <label for="reasonInput" class="form-label">
                                     <i class="bi bi-chat-text me-1"></i>
-                                    Sebep <span class="text-danger">*</span>
+                                    Sebep <small class="text-muted">(İsteğe bağlı)</small>
                                 </label>
                                 <textarea class="form-control" id="reasonInput" rows="3" 
-                                          placeholder="Bu yetkileri verme sebebinizi yazın..."></textarea>
+                                          placeholder="Bu yetkileri verme sebebinizi yazın... (İsteğe bağlı)">${mode === 'edit' && currentPermissions.length > 0 ? currentPermissions[0].Notes || '' : ''}</textarea>
                             </div>
                             
                             <div class="mt-3">
                                 <div class="alert alert-info">
                                     <i class="bi bi-info-circle me-2"></i>
-                                    <strong>Bilgi:</strong> Seçtiğiniz yetkiler bu menü için kullanıcıya atanacaktır.
+                                    <strong>Bilgi:</strong> ${mode === 'edit' ? 'Seçtiğiniz yetkiler bu menü için kullanıcının yetkilerini güncelleyecektir.' : 'Seçtiğiniz yetkiler bu menü için kullanıcıya atanacaktır.'}
                                 </div>
                             </div>
                         </div>
@@ -1133,9 +1247,9 @@ function initializeUserManagement() {
                                 <i class="bi bi-x-lg me-1"></i>
                                 İptal
                             </button>
-                            <button type="button" class="btn btn-primary" onclick="assignMultipleMenuPermissions(${menuId}, ${userId})">
+                            <button type="button" class="btn btn-primary" onclick="${mode === 'edit' ? 'updateMenuPermissions' : 'assignMultipleMenuPermissions'}(${menuId}, ${userId})">
                                 <i class="bi bi-check-lg me-1"></i>
-                                Yetkileri Ata
+                                ${mode === 'edit' ? 'Yetkileri Güncelle' : 'Yetkileri Ata'}
                             </button>
                         </div>
                     </div>
@@ -1146,12 +1260,26 @@ function initializeUserManagement() {
         // Remove existing modal if any
         $('#menuPermissionModal').remove();
         
+        console.log('Adding modal to DOM...'); // Debug log
+        
         // Add new modal to body
         $('body').append(modalHtml);
+        
+        console.log('Modal added to DOM, showing modal...'); // Debug log
+        
+        // Hide the parent modal first
+        try {
+            $('#userPermissionsModal').modal('hide');
+        } catch (e) {
+            console.warn('Error hiding parent modal:', e);
+        }
         
         // Show modal with slide animation from right
         const modal = $('#menuPermissionModal');
         const modalDialog = modal.find('.modal-dialog-slide-right');
+        
+        // Remove any existing backdrop
+        $('#permissionModalBackdrop').remove();
         
         // Add backdrop
         $('body').append('<div class="modal-backdrop fade show" id="permissionModalBackdrop"></div>');
@@ -1161,9 +1289,12 @@ function initializeUserManagement() {
         modal.attr('aria-hidden', 'false');
         modal.css('display', 'block');
         
+        console.log('Modal classes and styles applied'); // Debug log
+        
         // Trigger slide animation
         setTimeout(function() {
             modalDialog.addClass('show');
+            console.log('Slide animation triggered'); // Debug log
         }, 10);
         
         // Prevent body scroll
@@ -1173,6 +1304,12 @@ function initializeUserManagement() {
         modal.on('hidden.bs.modal', function() {
             $('#permissionModalBackdrop').remove();
             $('body').removeClass('modal-open');
+            // Show the parent modal again
+            try {
+                $('#userPermissionsModal').modal('show');
+            } catch (e) {
+                console.warn('Error showing parent modal:', e);
+            }
             $(this).remove();
         });
         
@@ -1207,6 +1344,13 @@ function initializeUserManagement() {
             // Restore body scroll
             $('body').removeClass('modal-open');
             
+            // Show the parent modal again
+            try {
+                $('#userPermissionsModal').modal('show');
+            } catch (e) {
+                console.warn('Error showing parent modal:', e);
+            }
+            
             // Trigger hidden event
             modal.trigger('hidden.bs.modal');
         }, 300);
@@ -1215,11 +1359,6 @@ function initializeUserManagement() {
     // Global function for assigning multiple menu permissions - DYNAMIC VERSION
     window.assignMultipleMenuPermissions = function(menuId, userId) {
         const reason = $('#reasonInput').val().trim();
-        
-        if (!reason) {
-            alert('Sebep belirtilmelidir!');
-            return;
-        }
         
         // Get selected permissions from dynamic checkboxes
         const selectedPermissions = [];
@@ -1297,6 +1436,105 @@ function initializeUserManagement() {
         });
     };
 
+    // Global function for updating menu permissions - EDIT MODE
+    window.updateMenuPermissions = function(menuId, userId) {
+        const reason = $('#reasonInput').val().trim();
+        
+        // Get selected permissions from dynamic checkboxes
+        const selectedPermissions = [];
+        $('.permission-checkbox:checked').each(function() {
+            const permissionId = $(this).data('permission-id');
+            const permissionCode = $(this).val();
+            const permissionName = $(this).next('label').find('strong').text();
+            
+            selectedPermissions.push({
+                id: permissionId,
+                code: permissionCode,
+                name: permissionName
+            });
+        });
+        
+        // Close modal with animation
+        hidePermissionModal();
+        
+        // Show loading
+        showPermissionModalAlert('Yetkiler güncelleniyor...', 'info');
+        
+        // First, remove all existing permissions for this menu
+        $.ajax({
+            url: '/User/RemoveAllMenuPermissions',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ 
+                userId: userId, 
+                menuId: menuId
+            }),
+            success: function(removeResponse) {
+                if (removeResponse.success) {
+                    // Then add selected permissions
+                    if (selectedPermissions.length > 0) {
+                        let completed = 0;
+                        let errors = [];
+                        
+                        selectedPermissions.forEach(function(permission, index) {
+                            $.ajax({
+                                url: '/User/AssignMenuPermissionToUser',
+                                type: 'POST',
+                                contentType: 'application/json',
+                                data: JSON.stringify({
+                                    userId: userId,
+                                    menuId: menuId,
+                                    permissionId: permission.id,
+                                    permissionLevel: permission.code,
+                                    notes: reason
+                                }),
+                                success: function(response) {
+                                    completed++;
+                                    if (!response.success) {
+                                        errors.push(`${permission.name}: ${response.message || response.error}`);
+                                    }
+                                    
+                                    if (completed === selectedPermissions.length) {
+                                        if (errors.length === 0) {
+                                            showPermissionModalAlert(`${selectedPermissions.length} yetki başarıyla güncellendi!`, 'success');
+                                        } else {
+                                            showPermissionModalAlert(`${completed - errors.length} yetki güncellendi, ${errors.length} hata oluştu`, 'warning');
+                                        }
+                                        loadUserMenuPermissions(userId);
+                                        loadAvailableMenusForUser(userId);
+                                    }
+                                },
+                                error: function(xhr) {
+                                    completed++;
+                                    errors.push(`${permission.name}: Sunucu hatası`);
+                                    
+                                    if (completed === selectedPermissions.length) {
+                                        if (errors.length === selectedPermissions.length) {
+                                            showPermissionModalAlert('Tüm yetkiler güncellenirken hata oluştu!', 'error');
+                                        } else {
+                                            showPermissionModalAlert(`${completed - errors.length} yetki güncellendi, ${errors.length} hata oluştu`, 'warning');
+                                        }
+                                        loadUserMenuPermissions(userId);
+                                        loadAvailableMenusForUser(userId);
+                                    }
+                                }
+                            });
+                        });
+                    } else {
+                        showPermissionModalAlert('Tüm yetkiler kaldırıldı!', 'success');
+                        loadUserMenuPermissions(userId);
+                        loadAvailableMenusForUser(userId);
+                    }
+                } else {
+                    showPermissionModalAlert('Yetkiler güncellenirken hata oluştu!', 'error');
+                }
+            },
+            error: function() {
+                showPermissionModalAlert('Yetkiler güncellenirken hata oluştu!', 'error');
+            }
+        });
+    };
+
 
     // Search Functions
     $('#roleSearchInput').on('input', function() {
@@ -1305,7 +1543,7 @@ function initializeUserManagement() {
         loadAvailableRolesForUser(userId, search);
     });
 
-    $('#permissionSearchInput').on('input', function() {
+    $('#menuPermissionSearchInput').on('input', function() {
         var search = $(this).val();
         var userId = $('#userPermissionsModal').data('user-id');
         loadAvailableMenusForUser(userId, search);
@@ -1661,9 +1899,17 @@ function displayAssignedUserMenuPermissions(permissions) {
                                 <div class="mt-1">${permBadges}</div>
                             </div>
                             <div class="ms-2">
+                                <button class="btn btn-sm btn-outline-warning edit-menu-permissions me-1" 
+                                        data-menu-id="${menuId}"
+                                        data-menu-name="${menuData.menuName}"
+                                        title="Yetkileri Düzenle"
+                                        type="button">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
                                 <button class="btn btn-sm btn-outline-danger remove-all-menu-permissions" 
                                         data-menu-id="${menuId}"
-                                        title="Tüm Yetkileri Kaldır">
+                                        title="Tüm Yetkileri Kaldır"
+                                        type="button">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
@@ -1681,7 +1927,9 @@ function displayAssignedUserMenuPermissions(permissions) {
         if (menus.length === 0) {
             html = '<div class="text-muted text-center py-3 small">Tüm menüler rolleriniz üzerinden tanımlanmış veya direkt atanmış. Ek yetki gerekmemektedir.</div>';
         } else {
-            menus.forEach(function(menu) {
+            console.log(menus);
+            menus.forEach(function (menu) {
+
                 const availablePermCount = menu.availablePermissions ? menu.availablePermissions.length : 0;
                 const roleInfo = menu.hasAnyRolePermission ? '<span class="badge bg-info small">Rolden Kısmen</span>' : '';
                 

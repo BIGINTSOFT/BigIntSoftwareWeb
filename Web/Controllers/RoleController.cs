@@ -38,7 +38,7 @@ namespace Web.Controllers
 
         #region Ana Sayfalar
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             // Geçici olarak yetki kontrolünü kaldırdık
             // if (!await HasPermissionAsync("VIEW"))
@@ -137,9 +137,6 @@ namespace Web.Controllers
 
                 await _roleRepository.UpdateAsync(existingRole);
 
-                // Menüleri güncelle
-                await UpdateRoleMenus(roleDto.Id, roleDto.MenuIds);
-
                 return Json(new { success = true, message = "Rol başarıyla güncellendi." });
             }
             catch (Exception ex)
@@ -156,8 +153,16 @@ namespace Web.Controllers
 
             try
             {
-                await _roleRepository.DeleteAsync(id);
-                return Json(new { success = true, message = "Rol başarıyla silindi." });
+                var existingRole = await _roleRepository.GetByIdAsync(id);
+                if (existingRole == null)
+                    return Json(new { success = false, message = "Rol bulunamadı." });
+
+                // Soft delete - sadece IsActive'i false yap
+                existingRole.IsActive = false;
+                existingRole.UpdatedDate = DateTime.Now;
+
+                await _roleRepository.UpdateAsync(existingRole);
+                return Json(new { success = true, message = "Rol başarıyla pasif hale getirildi." });
             }
             catch (Exception ex)
             {
@@ -242,7 +247,33 @@ namespace Web.Controllers
             try
             {
                 var permissions = await _roleRepository.GetRoleMenuPermissionsAsync(roleId);
-                return Json(new { success = true, data = permissions });
+                
+                // DTO'ya dönüştür - Circular reference sorununu önle ve duplicate'ları kaldır
+                var permissionDtos = permissions
+                    .GroupBy(p => p.Id) // Duplicate'ları kaldır
+                    .Select(g => g.First()) // İlk kaydı al
+                    .Select(p => new
+                    {
+                        Id = p.Id,
+                        RoleId = p.RoleId,
+                        MenuId = p.MenuId,
+                        PermissionId = p.PermissionId,
+                        PermissionLevel = p.PermissionLevel,
+                        Notes = p.Notes,
+                        AssignedDate = p.AssignedDate,
+                        IsActive = p.IsActive,
+                        // Menu bilgileri
+                        MenuName = p.Menu?.Name,
+                        MenuIcon = p.Menu?.Icon,
+                        MenuController = p.Menu?.Controller,
+                        MenuAction = p.Menu?.Action,
+                        // Permission bilgileri
+                        PermissionName = p.Permission?.Name,
+                        PermissionCode = p.Permission?.Code,
+                        PermissionDescription = p.Permission?.Description
+                    }).ToList();
+                
+                return Json(new { success = true, data = permissionDtos });
             }
             catch (Exception ex)
             {
@@ -432,6 +463,93 @@ namespace Web.Controllers
 
         #endregion
 
+        #region Available Menus and Permissions for Role
+
+        [HttpGet]
+        public async Task<IActionResult> GetAvailableMenusForRolePermission(int roleId, string? search = null)
+        {
+            if (!await HasPermissionAsync("VIEW"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                // Tüm menüleri al
+                var allMenus = await _menuRepository.GetAllAsync();
+                
+                // Rolün mevcut menü yetkilerini al
+                var roleMenuPermissions = await _roleRepository.GetRoleMenuPermissionsAsync(roleId);
+                
+                // Rolün direkt sahip olduğu menü ID'leri (bunları gösterme!)
+                var assignedMenuIds = roleMenuPermissions.Select(rmp => rmp.MenuId).Distinct().ToHashSet();
+                
+                // Kullanılabilir menüleri filtrele ve duplicate'ları kaldır
+                var availableMenus = allMenus
+                    .Where(menu => !assignedMenuIds.Contains(menu.Id))
+                    .GroupBy(menu => menu.Id) // Duplicate'ları kaldır
+                    .Select(g => g.First()) // İlk kaydı al
+                    .Select(menu => new // DTO'ya dönüştür - Circular reference'ları önle
+                    {
+                        Id = menu.Id,
+                        Name = menu.Name,
+                        Icon = menu.Icon,
+                        Controller = menu.Controller,
+                        Action = menu.Action,
+                        IsActive = menu.IsActive,
+                        CreatedDate = menu.CreatedDate
+                        // Navigation property'leri dahil etme!
+                    })
+                    .ToList();
+                
+                // Apply search filter if provided
+                if (!string.IsNullOrEmpty(search))
+                {
+                    availableMenus = availableMenus.Where(menu => 
+                        menu.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                        (menu.Controller != null && menu.Controller.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                        (menu.Action != null && menu.Action.Contains(search, StringComparison.OrdinalIgnoreCase))
+                    ).ToList();
+                }
+                
+                return Json(new { success = true, data = availableMenus });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RemoveAllMenuPermissionsFromRole([FromBody] RemoveAllMenuPermissionsFromRoleRequest request)
+        {
+            if (!await HasPermissionAsync("EDIT"))
+                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
+
+            try
+            {
+                // Rolün bu menüye ait tüm izinlerini bul ve kaldır
+                var allPermissions = await _roleRepository.GetRoleMenuPermissionsAsync(request.RoleId);
+                var permissions = allPermissions.Where(p => p.MenuId == request.MenuId).ToList();
+                
+                int removedCount = 0;
+                foreach (var permission in permissions)
+                {
+                    var removed = await _roleRepository.RemoveMenuPermissionFromRoleAsync(request.RoleId, request.MenuId, permission.PermissionId);
+                    if (removed) removedCount++;
+                }
+                
+                if (removedCount > 0)
+                    return Json(new { success = true, message = $"{removedCount} yetki başarıyla kaldırıldı." });
+                else
+                    return Json(new { success = false, message = "Kaldırılacak yetki bulunamadı." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        #endregion
+
         #region Yardımcı Metodlar
 
         private async Task<bool> HasPermissionAsync(string permissionLevel)
@@ -517,6 +635,12 @@ namespace Web.Controllers
         public int PermissionId { get; set; }
         public string NewPermissionLevel { get; set; } = string.Empty;
         public string? Notes { get; set; }
+    }
+
+    public class RemoveAllMenuPermissionsFromRoleRequest
+    {
+        public int RoleId { get; set; }
+        public int MenuId { get; set; }
     }
 
     #endregion

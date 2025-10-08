@@ -187,9 +187,11 @@
     bottom: 0;
     margin: 0;
     height: 100vh;
-    max-width: 600px !important;
+    max-width: 800px !important;
+    width: 800px !important;
     transform: translateX(100%);
     transition: transform 0.3s ease-out;
+    z-index: 1060 !important;
 }
 
 .modal-dialog-slide-right.show {
@@ -210,6 +212,13 @@
 }
 
 /* Responsive permission modal */
+@media (max-width: 1200px) {
+    .modal-dialog-slide-right {
+        max-width: 90% !important;
+        width: 90% !important;
+    }
+}
+
 @media (max-width: 768px) {
     .modal-dialog-slide-right {
         max-width: 100% !important;

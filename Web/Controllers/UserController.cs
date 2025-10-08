@@ -38,7 +38,7 @@ namespace Web.Controllers
 
         #region Ana Sayfalar
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             // Geçici olarak yetki kontrolünü kaldırdık
             // if (!await HasPermissionAsync("VIEW"))

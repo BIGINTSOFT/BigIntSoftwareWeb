@@ -13,29 +13,20 @@ namespace Web.Controllers
         private readonly IPermissionRepository _permissionRepository;
         private readonly IUserRepository _userRepository;
         private readonly IMenuRepository _menuRepository;
-        private readonly IRoleRepository _roleRepository;
-        private readonly IUserMenuPermissionRepository _userMenuPermissionRepository;
-        private readonly IRoleMenuPermissionRepository _roleMenuPermissionRepository;
 
         public PermissionController(
             IPermissionRepository permissionRepository,
             IUserRepository userRepository,
-            IMenuRepository menuRepository,
-            IRoleRepository roleRepository,
-            IUserMenuPermissionRepository userMenuPermissionRepository,
-            IRoleMenuPermissionRepository roleMenuPermissionRepository)
+            IMenuRepository menuRepository)
         {
             _permissionRepository = permissionRepository;
             _userRepository = userRepository;
             _menuRepository = menuRepository;
-            _roleRepository = roleRepository;
-            _userMenuPermissionRepository = userMenuPermissionRepository;
-            _roleMenuPermissionRepository = roleMenuPermissionRepository;
         }
 
         #region Ana Sayfalar
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             // Geçici olarak yetki kontrolünü kaldırdık
             // if (!await HasPermissionAsync("VIEW"))
@@ -54,7 +45,21 @@ namespace Web.Controllers
             try
             {
                 var permissions = await _permissionRepository.GetAllAsync();
-                return Json(new { success = true, data = permissions });
+                
+                // DTO'ya dönüştür - Circular reference'ları önle
+                var permissionDtos = permissions.Select(permission => new
+                {
+                    Id = permission.Id,
+                    Name = permission.Name,
+                    Code = permission.Code,
+                    Description = permission.Description,
+                    IsActive = permission.IsActive,
+                    CreatedDate = permission.CreatedDate,
+                    UpdatedDate = permission.UpdatedDate
+                    // Navigation property'leri dahil etme!
+                }).ToList();
+                
+                return Json(new { success = true, data = permissionDtos });
             }
             catch (Exception ex)
             {
@@ -71,7 +76,19 @@ namespace Web.Controllers
                 if (permission == null)
                     return Json(new { success = false, error = "Yetki bulunamadı" });
 
-                return Json(new { success = true, data = permission });
+                // DTO'ya dönüştür
+                var permissionDto = new
+                {
+                    Id = permission.Id,
+                    Name = permission.Name,
+                    Code = permission.Code,
+                    Description = permission.Description,
+                    IsActive = permission.IsActive,
+                    CreatedDate = permission.CreatedDate,
+                    UpdatedDate = permission.UpdatedDate
+                };
+
+                return Json(new { success = true, data = permissionDto });
             }
             catch (Exception ex)
             {
@@ -90,13 +107,14 @@ namespace Web.Controllers
                 var permission = new Permission
                 {
                     Name = permissionDto.Name,
-                    Description = permissionDto.Description,
                     Code = permissionDto.Code,
+                    Description = permissionDto.Description,
                     IsActive = permissionDto.IsActive,
                     CreatedDate = DateTime.Now
                 };
 
                 await _permissionRepository.AddAsync(permission);
+
                 return Json(new { success = true, message = "Yetki başarıyla oluşturuldu." });
             }
             catch (Exception ex)
@@ -118,12 +136,13 @@ namespace Web.Controllers
                     return Json(new { success = false, message = "Yetki bulunamadı." });
 
                 existingPermission.Name = permissionDto.Name;
-                existingPermission.Description = permissionDto.Description;
                 existingPermission.Code = permissionDto.Code;
+                existingPermission.Description = permissionDto.Description;
                 existingPermission.IsActive = permissionDto.IsActive;
                 existingPermission.UpdatedDate = DateTime.Now;
 
                 await _permissionRepository.UpdateAsync(existingPermission);
+
                 return Json(new { success = true, message = "Yetki başarıyla güncellendi." });
             }
             catch (Exception ex)
@@ -140,249 +159,16 @@ namespace Web.Controllers
 
             try
             {
-                await _permissionRepository.DeleteAsync(id);
-                return Json(new { success = true, message = "Yetki başarıyla silindi." });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        #endregion
-
-        #region Yetki Seviyeleri
-
-        [HttpGet]
-        public async Task<IActionResult> GetStandardPermissions()
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var permissions = await _permissionRepository.GetStandardPermissionsAsync();
-                return Json(new { success = true, data = permissions });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetPermissionLevels()
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var levels = await _permissionRepository.GetPermissionLevelsAsync();
-                return Json(new { success = true, data = levels });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> IsValidPermissionLevel(string permissionLevel)
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var isValid = await _permissionRepository.IsValidPermissionLevelAsync(permissionLevel);
-                return Json(new { success = true, data = isValid });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        #endregion
-
-        #region Yetki İstatistikleri
-
-        [HttpGet]
-        public async Task<IActionResult> GetPermissionUsageStats()
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var stats = await _permissionRepository.GetPermissionUsageStatsAsync();
-                return Json(new { success = true, data = stats });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetPermissionUsageCount(string permissionLevel)
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var count = await _permissionRepository.GetPermissionUsageCountAsync(permissionLevel);
-                return Json(new { success = true, data = count });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        #endregion
-
-        #region Yetki Arama
-
-        [HttpGet]
-        public async Task<IActionResult> SearchPermissions(string searchTerm)
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var permissions = await _permissionRepository.SearchPermissionsAsync(searchTerm);
-                return Json(new { success = true, data = permissions });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetActivePermissions()
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var permissions = await _permissionRepository.GetActivePermissionsAsync();
-                return Json(new { success = true, data = permissions });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetPermissionByCode(string code)
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var permission = await _permissionRepository.GetPermissionByCodeAsync(code);
-                return Json(new { success = true, data = permission });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        #endregion
-
-        #region Yetki Kullanım Analizi
-
-        [HttpGet]
-        public async Task<IActionResult> GetPermissionUsageByUser(int userId)
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var usage = await _permissionRepository.GetPermissionUsageByUserAsync(userId);
-                return Json(new { success = true, data = usage });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetPermissionUsageByRole(int roleId)
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var usage = await _permissionRepository.GetPermissionUsageByRoleAsync(roleId);
-                return Json(new { success = true, data = usage });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetPermissionUsageByMenu(int menuId)
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var usage = await _permissionRepository.GetPermissionUsageByMenuAsync(menuId);
-                return Json(new { success = true, data = usage });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Hata: " + ex.Message });
-            }
-        }
-
-        #endregion
-
-        #region Yetki Detayları
-
-        [HttpGet]
-        public async Task<IActionResult> GetPermissionDetails(int permissionId)
-        {
-            if (!await HasPermissionAsync("VIEW"))
-                return Json(new { success = false, message = "Yetkiniz bulunmamaktadır." });
-
-            try
-            {
-                var permission = await _permissionRepository.GetByIdAsync(permissionId);
-                if (permission == null)
+                var existingPermission = await _permissionRepository.GetByIdAsync(id);
+                if (existingPermission == null)
                     return Json(new { success = false, message = "Yetki bulunamadı." });
 
-                var usageStats = await _permissionRepository.GetPermissionUsageStatsAsync();
-                var userCount = await _permissionRepository.GetPermissionUserMenuCountAsync(permissionId);
-                var roleCount = await _permissionRepository.GetPermissionRoleMenuCountAsync(permissionId);
-                var menuCount = await _permissionRepository.GetMenuPermissionCountAsync(permissionId);
+                // Soft delete - sadece IsActive'i false yap
+                existingPermission.IsActive = false;
+                existingPermission.UpdatedDate = DateTime.Now;
 
-                var result = new
-                {
-                    Permission = permission,
-                    UsageStats = usageStats,
-                    UserCount = userCount,
-                    RoleCount = roleCount,
-                    MenuCount = menuCount
-                };
-
-                return Json(new { success = true, data = result });
+                await _permissionRepository.UpdateAsync(existingPermission);
+                return Json(new { success = true, message = "Yetki başarıyla pasif hale getirildi." });
             }
             catch (Exception ex)
             {

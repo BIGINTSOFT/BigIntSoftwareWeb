@@ -1,94 +1,182 @@
-// Permission Management JavaScript
-
+// Permission Management JavaScript with DevExtreme - Complete Implementation
 $(document).ready(function() {
     initializePermissionManagement();
 });
 
 function initializePermissionManagement() {
-    let permissionsTable;
+    let permissionsDataGrid;
     let currentPermissionId = null;
     let isEditMode = false;
 
-    // Initialize DataTable
-    function initDataTable() {
-        permissionsTable = $('#permissionsTable').DataTable({
-            processing: true,
-            serverSide: false,
-            ajax: {
-                url: '/Permission/GetPermissions',
-                type: 'GET',
-                dataSrc: function(json) {
-                return json.data;
+    // Initialize DevExtreme DataGrid
+    function initDataGrid() {
+        permissionsDataGrid = $("#permissionsDataGrid").dxDataGrid({
+            dataSource: {
+                load: function(loadOptions) {
+                    return $.ajax({
+                        url: '/Permission/GetPermissions',
+                        type: 'GET',
+                        dataType: 'json'
+                    }).then(function(response) {
+                        return {
+                            data: response.data || [],
+                            totalCount: response.data ? response.data.length : 0
+                        };
+                    });
+                }
             },
-                error: function(xhr, error, thrown) {
-                console.error('DataTables AJAX error:', error, thrown);
-            }
-        },
+            showBorders: true,
+            showRowLines: true,
+            showColumnLines: false,
+            rowAlternationEnabled: true,
+            hoverStateEnabled: true,
+            allowColumnReordering: true,
+            allowColumnResizing: true,
+            columnAutoWidth: true,
+            wordWrapEnabled: true,
+            columnHidingEnabled: false,
+            scrolling: { 
+                columnRenderingMode: 'virtual', 
+                showScrollbar: 'onHover',
+                mode: 'standard'
+            },
+            columnChooser: {
+                enabled: true,
+                mode: 'select'
+            },
+            searchPanel: {
+                visible: true,
+                width: 240,
+                placeholder: 'Ara...'
+            },
+            filterRow: {
+                visible: true
+            },
+            headerFilter: {
+                visible: true
+            },
+            paging: {
+                pageSize: 20,
+                pageSizes: [10, 20, 50, 100]
+            },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 20, 50, 100],
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            export: {
+                enabled: true,
+                fileName: 'YetkiListesi',
+                allowExportSelectedData: true
+            },
+            selection: {
+                mode: 'multiple'
+            },
             columns: [
-                { data: 'Id' },
-                { data: 'Name' },
-                { data: 'Code' },
-                { data: 'Description' },
-                { 
-                    data: 'IsActive',
-                    render: function(data, type, row) {
-                        if (data) {
-                            return '<span class="badge bg-success">Aktif</span>';
-                        } else {
-                            return '<span class="badge bg-danger">Pasif</span>';
-                        }
-                    }
-                },
-                { data: 'CreatedDate' },
                 {
-                    data: null,
-                    orderable: false,
-                    render: function(data, type, row) {
-                        return '<button class="btn btn-sm btn-outline-primary view-roles" data-id="' + row.Id + '" title="Rolleri Görüntüle">' +
-                            '<i class="bi bi-shield-check"></i>' +
-                            '</button>';
+                    dataField: 'Id',
+                    caption: 'ID',
+                    width: 60,
+                    alignment: 'center'
+                },
+                {
+                    dataField: 'Name',
+                    caption: 'Yetki Adı',
+                    width: 150
+                },
+                {
+                    dataField: 'Code',
+                    caption: 'Yetki Kodu',
+                    width: 120,
+                    cellTemplate: function(container, options) {
+                        const code = options.value;
+                        const badgeClass = getPermissionBadgeClass(code);
+                        container.append(`<span class="dx-badge ${badgeClass}">${code}</span>`);
                     }
                 },
                 {
-                    data: null,
-                    orderable: false,
-                    render: function(data, type, row) {
-                        return '<button class="btn btn-sm btn-outline-warning view-users" data-id="' + row.Id + '" title="Kullanıcıları Görüntüle">' +
-                            '<i class="bi bi-people"></i>' +
-                            '</button>';
+                    dataField: 'Description',
+                    caption: 'Açıklama',
+                    width: 200
+                },
+                {
+                    dataField: 'IsActive',
+                    caption: 'Durum',
+                    width: 80,
+                    alignment: 'center',
+                    cellTemplate: function(container, options) {
+                        const isActive = options.value;
+                        const badgeClass = isActive ? 'dx-badge-success' : 'dx-badge-danger';
+                        const text = isActive ? 'Aktif' : 'Pasif';
+                        container.append(`<span class="dx-badge ${badgeClass}">${text}</span>`);
                     }
                 },
                 {
-                    data: null,
-                    render: function(data, type, row) {
-                        var actions = '';
+                    dataField: 'CreatedDate',
+                    caption: 'Oluşturulma',
+                    width: 120,
+                    dataType: 'datetime',
+                    format: 'dd/MM/yyyy HH:mm'
+                },
+                {
+                    caption: 'İşlemler',
+                    width: 100,
+                    alignment: 'center',
+                    allowSorting: false,
+                    allowFiltering: false,
+                    allowHeaderFiltering: false,
+                    cellTemplate: function(container, options) {
+                        const permission = options.data;
+                        const actionsContainer = $('<div>').addClass('dx-action-buttons');
                         
                         if (window.permissionPermissions && window.permissionPermissions.canView) {
-                            actions += '<button class="btn btn-sm btn-outline-info me-1 view-permission" data-id="' + row.Id + '" title="Görüntüle">';
-                            actions += '<i class="bi bi-eye"></i></button>';
+                            const viewBtn = $('<button>')
+                                .addClass('dx-action-btn dx-action-btn-view')
+                                .attr('title', 'Görüntüle')
+                                .html('<i class="bi bi-eye"></i>')
+                                .on('click', function() {
+                                    viewPermission(parseInt(permission.Id));
+                                });
+                            actionsContainer.append(viewBtn);
                         }
                         
                         if (window.permissionPermissions && window.permissionPermissions.canEdit) {
-                            actions += '<button class="btn btn-sm btn-outline-primary me-1 edit-permission" data-id="' + row.Id + '" title="Düzenle">';
-                            actions += '<i class="bi bi-pencil"></i></button>';
+                            const editBtn = $('<button>')
+                                .addClass('dx-action-btn dx-action-btn-edit')
+                                .attr('title', 'Düzenle')
+                                .html('<i class="bi bi-pencil"></i>')
+                                .on('click', function() {
+                                    editPermission(parseInt(permission.Id));
+                                });
+                            actionsContainer.append(editBtn);
                         }
                         
                         if (window.permissionPermissions && window.permissionPermissions.canDelete) {
-                            actions += '<button class="btn btn-sm btn-outline-danger me-1 delete-permission" data-id="' + row.Id + '" title="Sil">';
-                            actions += '<i class="bi bi-trash"></i></button>';
+                            const deleteBtn = $('<button>')
+                                .addClass('dx-action-btn dx-action-btn-delete')
+                                .attr('title', 'Sil')
+                                .html('<i class="bi bi-trash"></i>')
+                                .on('click', function() {
+                                    deletePermission(parseInt(permission.Id));
+                                });
+                            actionsContainer.append(deleteBtn);
                         }
                         
-                        return actions;
+                        container.append(actionsContainer);
                     }
                 }
             ],
-            language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
+            onRowClick: function(e) {
+                // Row click event if needed
             },
-            responsive: true,
-            pageLength: 10,
-            order: [[0, 'desc']]
-        });
+            onSelectionChanged: function(e) {
+                // Selection changed event if needed
+            },
+            onExporting: function(e) {
+                // Custom export logic if needed
+            }
+        }).dxDataGrid('instance');
     }
 
     // Add Permission Button
@@ -99,26 +187,69 @@ function initializePermissionManagement() {
         }
         
         isEditMode = false;
+        currentPermissionId = null;
         $('#permissionModalLabel').text('Yeni Yetki');
         $('#permissionForm')[0].reset();
         $('#permissionId').val('');
         showSlideModal();
     });
 
-    // Edit Permission Button
-    $(document).on('click', '.edit-permission', function() {
+    // Refresh Button
+    $('#refreshBtn').click(function() {
+        permissionsDataGrid.refresh();
+        showAlert('Tablo yenilendi', 'success');
+    });
+
+    // Export Button
+    $('#exportBtn').click(function() {
+        try {
+            if (permissionsDataGrid && typeof permissionsDataGrid.exportToExcel === 'function') {
+                permissionsDataGrid.exportToExcel({
+                    fileName: 'YetkiListesi_' + new Date().toISOString().split('T')[0],
+                    autoFilterEnabled: true
+                });
+            } else {
+                showAlert('Excel export özelliği şu anda kullanılamıyor.', 'warning');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            showAlert('Excel export sırasında hata oluştu.', 'error');
+        }
+    });
+
+    // Permission Action Functions
+    function viewPermission(permissionId) {
+        if (!window.permissionPermissions || !window.permissionPermissions.canView) {
+            showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
+            return;
+        }
+        
+        $.get('/Permission/GetPermission/' + permissionId)
+            .done(function(response) {
+                if (response.data) {
+                    const permission = response.data;
+                    showPermissionDetails(permission);
+                } else {
+                    showAlert('Yetki bilgileri alınamadı', 'error');
+                }
+            })
+            .fail(function() {
+                showAlert('Yetki bilgileri alınamadı', 'error');
+            });
+    }
+
+    function editPermission(permissionId) {
         if (!window.permissionPermissions || !window.permissionPermissions.canEdit) {
             showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
             return;
         }
         
-        const permissionId = $(this).data('id');
         isEditMode = true;
         currentPermissionId = permissionId;
         
         $.get('/Permission/GetPermission/' + permissionId)
             .done(function(response) {
-                if (response.success && response.data) {
+                if (response.data) {
                     $('#permissionModalLabel').text('Yetki Düzenle');
                     $('#permissionId').val(response.data.Id);
                     $('#permissionName').val(response.data.Name);
@@ -133,49 +264,28 @@ function initializePermissionManagement() {
             .fail(function() {
                 showAlert('Yetki bilgileri alınamadı', 'error');
             });
-    });
+    }
 
-    // Delete Permission Button
-    $(document).on('click', '.delete-permission', function() {
+    function deletePermission(permissionId) {
         if (!window.permissionPermissions || !window.permissionPermissions.canDelete) {
             showAlert('Bu işlem için yetkiniz bulunmamaktadır', 'error');
             return;
         }
         
-        currentPermissionId = $(this).data('id');
-        if (confirm('Bu yetkiyi silmek istediğinizden emin misiniz?')) {
-            $.ajax({
-                url: '/Permission/Delete/' + currentPermissionId,
-                type: 'DELETE',
-                success: function(response) {
-                    if (response.success) {
-                        permissionsTable.ajax.reload();
-                        showAlert(response.message, 'success');
-                    } else {
-                        showAlert(response.error, 'error');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    showAlert(response ? response.error : 'Bir hata oluştu', 'error');
-                }
-            });
-        }
-    });
+        currentPermissionId = permissionId;
+        $('#deleteModal').modal('show');
+    }
 
     // Save Permission
     $('#savePermissionBtn').click(function() {
         if (validateForm()) {
             const formData = {
+                Id: $('#permissionId').val() || 0,
                 Name: $('#permissionName').val(),
                 Code: $('#permissionCode').val(),
                 Description: $('#permissionDescription').val(),
                 IsActive: $('#permissionIsActive').is(':checked')
             };
-
-            if (isEditMode) {
-                formData.Id = parseInt($('#permissionId').val());
-            }
 
             const url = isEditMode ? '/Permission/Update' : '/Permission/Create';
             const method = 'POST';
@@ -188,18 +298,39 @@ function initializePermissionManagement() {
                 success: function(response) {
                     if (response.success) {
                         hideSlideModal();
-                        permissionsTable.ajax.reload();
+                        permissionsDataGrid.refresh();
                         showAlert(response.message, 'success');
                     } else {
-                        showAlert(response.error, 'error');
+                        showAlert(response.message || response.error, 'error');
                     }
                 },
                 error: function(xhr) {
                     const response = xhr.responseJSON;
-                    showAlert(response ? response.error : 'Bir hata oluştu', 'error');
+                    showAlert(response ? (response.message || response.error) : 'Bir hata oluştu', 'error');
                 }
             });
         }
+    });
+
+    // Confirm Delete
+    $('#confirmDeleteBtn').click(function() {
+        $.ajax({
+            url: '/Permission/Delete/' + currentPermissionId,
+            type: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    $('#deleteModal').modal('hide');
+                    permissionsDataGrid.refresh();
+                    showAlert(response.message, 'success');
+                } else {
+                    showAlert(response.message || response.error, 'error');
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showAlert(response ? (response.message || response.error) : 'Bir hata oluştu', 'error');
+            }
+        });
     });
 
     // Form Validation
@@ -291,7 +422,7 @@ function initializePermissionManagement() {
     });
 
     function showAlert(message, type) {
-        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const alertClass = type === 'success' ? 'alert-success' : (type === 'warning' ? 'alert-warning' : 'alert-danger');
         const alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
             message +
             '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
@@ -309,628 +440,89 @@ function initializePermissionManagement() {
         }, 5000);
     }
 
-    // Permission Role Management
-    $(document).on('click', '.view-roles', function() {
-        var permissionId = $(this).data('id');
-        openPermissionRoleModal(permissionId);
-    });
-
-    function openPermissionRoleModal(permissionId) {
-        $('#permissionRoleModal').modal('show');
-        
-        // Store current permission ID
-        $('#permissionRoleModal').data('permission-id', permissionId);
-        
-        // Show loading states
-        showLoadingStates();
-        
-        // Load data in parallel for better performance
-        Promise.all([
-            loadPermissionInfoAsync(permissionId),
-            loadPermissionRolesAsync(permissionId),
-            loadAvailableRolesForPermissionAsync(permissionId)
-        ]).then(() => {
-            hideLoadingStates();
-        }).catch((error) => {
-            hideLoadingStates();
-            showAlert('Veriler yüklenirken hata oluştu!', 'error');
-        });
-    }
-
-    // Loading state functions
-    function showLoadingStates() {
-        $('#assignedPermissionRolesList').html(`
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Yükleniyor...</span>
+    // Permission Details Modal
+    function showPermissionDetails(permission) {
+        const modalHtml = `
+            <div class="modal fade" id="permissionDetailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Yetki Detayları</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Yetki Bilgileri</h6>
+                                    <p><strong>ID:</strong> ${permission.Id}</p>
+                                    <p><strong>Yetki Adı:</strong> ${permission.Name}</p>
+                                    <p><strong>Yetki Kodu:</strong> <span class="badge ${getPermissionBadgeClass(permission.Code)}">${permission.Code}</span></p>
+                                    <p><strong>Açıklama:</strong> ${permission.Description || '-'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Durum Bilgileri</h6>
+                                    <p><strong>Durum:</strong> <span class="badge ${permission.IsActive ? 'bg-success' : 'bg-danger'}">${permission.IsActive ? 'Aktif' : 'Pasif'}</span></p>
+                                    <p><strong>Oluşturulma:</strong> ${permission.CreatedDate ? new Date(permission.CreatedDate).toLocaleString('tr-TR') : '-'}</p>
+                                    <p><strong>Son Güncelleme:</strong> ${permission.UpdatedDate ? new Date(permission.UpdatedDate).toLocaleString('tr-TR') : '-'}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                        </div>
+                    </div>
                 </div>
-                <p class="mt-2 text-muted">Roller yükleniyor...</p>
-            </div>
-        `);
-        
-        $('#availablePermissionRolesList').html(`
-            <div class="text-center py-4">
-                <div class="spinner-border text-success" role="status">
-                    <span class="visually-hidden">Yükleniyor...</span>
-                </div>
-                <p class="mt-2 text-muted">Mevcut roller yükleniyor...</p>
-            </div>
-        `);
-    }
-    
-    function hideLoadingStates() {
-        // Loading states will be replaced by actual data
-    }
-
-    function loadPermissionInfo(permissionId) {
-        $.ajax({
-            url: '/Permission/GetPermission',
-            type: 'GET',
-            data: { id: permissionId },
-            success: function(response) {
-                if (response.success) {
-                    displayPermissionInfo(response.data);
-                } else {
-                    showPermissionRoleModalAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showPermissionRoleModalAlert('Yetki bilgileri yüklenirken hata oluştu!', 'error');
-            }
-        });
-    }
-
-    // Async versions for parallel loading
-    function loadPermissionInfoAsync(permissionId) {
-        return new Promise((resolve, reject) => {
-            $.ajax({
-                url: '/Permission/GetPermission',
-                type: 'GET',
-                data: { id: permissionId },
-                success: function(response) {
-                    if (response.success) {
-                        displayPermissionInfo(response.data);
-                        resolve(response);
-                    } else {
-                        showPermissionRoleModalAlert(response.error, 'error');
-                        reject(response.error);
-                    }
-                },
-                error: function() {
-                    showPermissionRoleModalAlert('Yetki bilgileri yüklenirken hata oluştu!', 'error');
-                    reject('Yetki bilgileri yüklenirken hata oluştu!');
-                }
-            });
-        });
-    }
-
-    function displayPermissionInfo(permission) {
-        $('#modalPermissionRoleName').text(permission.Name || '-');
-        $('#modalPermissionRoleCode').text(permission.Code || '-');
-        
-        const statusBadge = permission.IsActive ? 
-            '<span class="badge bg-success">Aktif</span>' : 
-            '<span class="badge bg-danger">Pasif</span>';
-        $('#modalPermissionRoleStatus').html(statusBadge);
-        
-        // User modalı için de aynı bilgileri göster
-        displayPermissionUserInfo(permission);
-    }
-
-    function displayPermissionUserInfo(permission) {
-        $('#modalPermissionUserName').text(permission.Name || '-');
-        $('#modalPermissionUserCode').text(permission.Code || '-');
-        
-        const statusBadge = permission.IsActive ? 
-            '<span class="badge bg-success">Aktif</span>' : 
-            '<span class="badge bg-danger">Pasif</span>';
-        $('#modalPermissionUserStatus').html(statusBadge);
-    }
-
-    function showPermissionRoleModalAlert(message, type) {
-        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-        const alertHtml = `
-            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         `;
         
-        // Remove existing alerts
-        $('#permissionRoleModalAlert').remove();
+        // Remove existing modal if any
+        $('#permissionDetailsModal').remove();
         
-        // Add new alert
-        $('#permissionRoleModal .modal-body').prepend(alertHtml);
+        // Add new modal to body
+        $('body').append(modalHtml);
         
-        // Auto remove after 5 seconds
-        setTimeout(function() {
-            $('#permissionRoleModal .alert').fadeOut();
-        }, 5000);
-    }
-
-    function loadPermissionRoles(permissionId) {
-        // Yeni ERP yapısında Permission entity'si sadece sistem yetkileri için kullanılır
-        $('#assignedPermissionRolesList').html(`
-            <div class="empty-state">
-                <i class="bi bi-info-circle"></i>
-                <p class="mb-0">Yeni ERP yapısında sistem yetkileri rol bazlı değil, menü bazlı yönetilir</p>
-            </div>
-        `);
-    }
-
-    function loadPermissionRolesAsync(permissionId) {
-        return new Promise((resolve, reject) => {
-            $.ajax({
-                url: '/Permission/GetRolesByPermission',
-                type: 'GET',
-                data: { permissionId: permissionId },
-                success: function(response) {
-                    if (response.success) {
-                        displayAssignedPermissionRoles(response.data);
-                        resolve(response);
-                    } else {
-                        showAlert(response.error, 'error');
-                        reject(response.error);
-                    }
-                },
-                error: function() {
-                    showAlert('Roller yüklenirken hata oluştu!', 'error');
-                    reject('Roller yüklenirken hata oluştu!');
-                }
-            });
+        // Show modal
+        $('#permissionDetailsModal').modal('show');
+        
+        // Remove modal from DOM when hidden
+        $('#permissionDetailsModal').on('hidden.bs.modal', function() {
+            $(this).remove();
         });
     }
 
-    function loadAvailableRolesForPermission(permissionId, search = '') {
-        // Yeni ERP yapısında Permission entity'si sadece sistem yetkileri için kullanılır
-        $('#availablePermissionRolesList').html(`
-            <div class="empty-state">
-                <i class="bi bi-info-circle"></i>
-                <p class="mb-0">Menü yetkileri Rol Yönetimi sayfasından yönetilir</p>
-            </div>
-        `);
-    }
-
-    function loadAvailableRolesForPermissionAsync(permissionId, search = '') {
-        return new Promise((resolve, reject) => {
-            $.ajax({
-                url: '/Permission/GetAvailableRolesForPermission',
-                type: 'GET',
-                data: { permissionId: permissionId, search: search },
-                success: function(response) {
-                    if (response.success) {
-                        displayAvailablePermissionRoles(response.data);
-                        resolve(response);
-                    } else {
-                        showAlert(response.error || 'Roller yüklenirken hata oluştu!', 'error');
-                        reject(response.error || 'Roller yüklenirken hata oluştu!');
-                    }
-                },
-                error: function() {
-                    showAlert('Roller yüklenirken hata oluştu!', 'error');
-                    reject('Roller yüklenirken hata oluştu!');
-                }
-            });
-        });
-    }
-
-    function displayAssignedPermissionRoles(roles) {
-        var html = '';
-        if (roles.length === 0) {
-            html = `
-                <div class="empty-state">
-                    <i class="bi bi-shield-x"></i>
-                    <p class="mb-0">Bu yetkiye atanmış rol bulunmuyor</p>
-                </div>
-            `;
-        } else {
-            roles.forEach(function(role) {
-                html += `
-                    <div class="role-item d-flex justify-content-between align-items-center p-3 bg-light border rounded">
-                        <div class="role-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-shield-check text-primary me-2"></i>
-                                <span class="fw-bold">${role.name}</span>
-                                <span class="role-badge bg-primary text-white ms-2">Aktif</span>
-                            </div>
-                            <div class="role-description">${role.description || 'Açıklama bulunmuyor'}</div>
-                        </div>
-                        <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-danger remove-permission-role" data-role-id="${role.id}" title="Rolü Kaldır">
-                                <i class="bi bi-x"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
+    // Helper function for permission badge classes
+    function getPermissionBadgeClass(permissionCode) {
+        switch(permissionCode) {
+            case 'VIEW': return 'bg-primary';
+            case 'CREATE': return 'bg-success';
+            case 'EDIT': return 'bg-warning text-dark';
+            case 'UPDATE': return 'bg-warning text-dark';
+            case 'DELETE': return 'bg-danger';
+            case 'EXPORT': return 'bg-info';
+            case 'IMPORT': return 'bg-info';
+            case 'PRINT': return 'bg-secondary';
+            case 'MANAGE': return 'bg-dark';
+            default: return 'bg-secondary';
         }
-        $('#assignedPermissionRolesList').html(html);
     }
-
-    function displayAvailablePermissionRoles(roles) {
-        var html = '';
-        if (roles.length === 0) {
-            html = `
-                <div class="empty-state">
-                    <i class="bi bi-shield-plus"></i>
-                    <p class="mb-0">Eklenecek rol bulunamadı</p>
-                </div>
-            `;
-        } else {
-            roles.forEach(function(role) {
-                html += `
-                    <div class="role-item d-flex justify-content-between align-items-center p-3 bg-white border rounded">
-                        <div class="role-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-shield text-success me-2"></i>
-                                <span class="fw-bold">${role.name}</span>
-                            </div>
-                            <div class="role-description">${role.description || 'Açıklama bulunmuyor'}</div>
-                        </div>
-                        <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-success add-permission-role" data-role-id="${role.id}" title="Role Ekle">
-                                <i class="bi bi-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        $('#availablePermissionRolesList').html(html);
-    }
-
-    // Permission User Management
-    $(document).on('click', '.view-users', function() {
-        var permissionId = $(this).data('id');
-        openPermissionUserModal(permissionId);
-    });
-
-    function openPermissionUserModal(permissionId) {
-        $('#permissionUserModal').modal('show');
-        
-        // Store current permission ID
-        $('#permissionUserModal').data('permission-id', permissionId);
-        
-        // Show loading states
-        showUserLoadingStates();
-        
-        // Load data in parallel for better performance
-        Promise.all([
-            loadPermissionInfoAsync(permissionId),
-            loadPermissionUsersAsync(permissionId),
-            loadAvailableUsersForPermissionAsync(permissionId)
-        ]).then(() => {
-            hideUserLoadingStates();
-        }).catch((error) => {
-            hideUserLoadingStates();
-            showAlert('Veriler yüklenirken hata oluştu!', 'error');
-        });
-    }
-
-    // User loading state functions
-    function showUserLoadingStates() {
-        $('#assignedPermissionUsersList').html(`
-            <div class="text-center py-4">
-                <div class="spinner-border text-warning" role="status">
-                    <span class="visually-hidden">Yükleniyor...</span>
-                </div>
-                <p class="mt-2 text-muted">Kullanıcılar yükleniyor...</p>
-            </div>
-        `);
-        
-        $('#availablePermissionUsersList').html(`
-            <div class="text-center py-4">
-                <div class="spinner-border text-success" role="status">
-                    <span class="visually-hidden">Yükleniyor...</span>
-                </div>
-                <p class="mt-2 text-muted">Mevcut kullanıcılar yükleniyor...</p>
-            </div>
-        `);
-    }
-    
-    function hideUserLoadingStates() {
-        // Loading states will be replaced by actual data
-    }
-
-    function showPermissionUserModalAlert(message, type) {
-        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-        const alertHtml = `
-            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        
-        // Remove existing alerts
-        $('#permissionUserModalAlert').remove();
-        
-        // Add new alert
-        $('#permissionUserModal .modal-body').prepend(alertHtml);
-        
-        // Auto remove after 5 seconds
-        setTimeout(function() {
-            $('#permissionUserModal .alert').fadeOut();
-        }, 5000);
-    }
-
-    function loadPermissionUsers(permissionId) {
-        // Yeni ERP yapısında Permission entity'si sadece sistem yetkileri için kullanılır
-        $('#assignedPermissionUsersList').html(`
-            <div class="empty-state">
-                <i class="bi bi-info-circle"></i>
-                <p class="mb-0">Yeni ERP yapısında kullanıcılar rol üzerinden yetki alır</p>
-            </div>
-        `);
-    }
-
-    function loadPermissionUsersAsync(permissionId) {
-        return new Promise((resolve, reject) => {
-            $.ajax({
-                url: '/Permission/GetUsersByPermission',
-                type: 'GET',
-                data: { permissionId: permissionId },
-                success: function(response) {
-                    if (response.success) {
-                        displayAssignedPermissionUsers(response.data);
-                        resolve(response);
-                    } else {
-                        showAlert(response.error, 'error');
-                        reject(response.error);
-                    }
-                },
-                error: function() {
-                    showAlert('Kullanıcılar yüklenirken hata oluştu!', 'error');
-                    reject('Kullanıcılar yüklenirken hata oluştu!');
-                }
-            });
-        });
-    }
-
-    function loadAvailableUsersForPermission(permissionId, search = '') {
-        // Yeni ERP yapısında Permission entity'si sadece sistem yetkileri için kullanılır
-        $('#availablePermissionUsersList').html(`
-            <div class="empty-state">
-                <i class="bi bi-info-circle"></i>
-                <p class="mb-0">Kullanıcılara rol atayarak yetki verin</p>
-            </div>
-        `);
-    }
-
-    function loadAvailableUsersForPermissionAsync(permissionId, search = '') {
-        return new Promise((resolve, reject) => {
-            $.ajax({
-                url: '/Permission/GetAvailableUsersForPermission',
-                type: 'GET',
-                data: { permissionId: permissionId, search: search },
-                success: function(response) {
-                    if (response.success) {
-                        displayAvailablePermissionUsers(response.data);
-                        resolve(response);
-                    } else {
-                        showAlert(response.error || 'Kullanıcılar yüklenirken hata oluştu!', 'error');
-                        reject(response.error || 'Kullanıcılar yüklenirken hata oluştu!');
-                    }
-                },
-                error: function() {
-                    showAlert('Kullanıcılar yüklenirken hata oluştu!', 'error');
-                    reject('Kullanıcılar yüklenirken hata oluştu!');
-                }
-            });
-        });
-    }
-
-    function displayAssignedPermissionUsers(users) {
-        var html = '';
-        if (users.length === 0) {
-            html = `
-                <div class="empty-state">
-                    <i class="bi bi-people"></i>
-                    <p class="mb-0">Bu yetkiye atanmış kullanıcı bulunmuyor</p>
-                </div>
-            `;
-        } else {
-            users.forEach(function(user) {
-                var fullName = (user.firstName || '') + ' ' + (user.lastName || '');
-                var statusBadge = user.isActive ? 
-                    '<span class="badge bg-success ms-2">Aktif</span>' : 
-                    '<span class="badge bg-danger ms-2">Pasif</span>';
-                
-                html += `
-                    <div class="role-item d-flex justify-content-between align-items-center p-3 bg-light border rounded">
-                        <div class="role-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-person-check text-warning me-2"></i>
-                                <span class="fw-bold">${user.username}</span>
-                                ${statusBadge}
-                            </div>
-                            <div class="role-description">${fullName.trim() || 'Ad Soyad bulunmuyor'} - ${user.email}</div>
-                        </div>
-                        <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-danger remove-permission-user" data-user-id="${user.id}" title="Kullanıcıyı Kaldır">
-                                <i class="bi bi-x"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        $('#assignedPermissionUsersList').html(html);
-    }
-
-    function displayAvailablePermissionUsers(users) {
-        var html = '';
-        if (users.length === 0) {
-            html = `
-                <div class="empty-state">
-                    <i class="bi bi-person-plus"></i>
-                    <p class="mb-0">Eklenecek kullanıcı bulunamadı</p>
-                </div>
-            `;
-        } else {
-            users.forEach(function(user) {
-                var fullName = (user.firstName || '') + ' ' + (user.lastName || '');
-                html += `
-                    <div class="role-item d-flex justify-content-between align-items-center p-3 bg-white border rounded">
-                        <div class="role-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-person text-success me-2"></i>
-                                <span class="fw-bold">${user.username}</span>
-                            </div>
-                            <div class="role-description">${fullName.trim() || 'Ad Soyad bulunmuyor'} - ${user.email}</div>
-                        </div>
-                        <div class="role-actions">
-                            <button class="btn btn-sm btn-outline-success add-permission-user" data-user-id="${user.id}" title="Kullanıcıya Ekle">
-                                <i class="bi bi-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        $('#availablePermissionUsersList').html(html);
-    }
-
-    // Role Actions
-    $(document).on('click', '.add-permission-role', function() {
-        var roleId = $(this).data('role-id');
-        var permissionId = $('#permissionRoleModal').data('permission-id');
-        var $button = $(this);
-        
-        // Show loading state
-        $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
-
-        $.ajax({
-            url: '/Permission/AssignPermissionToRole',
-            type: 'POST',
-            data: { roleId: roleId, permissionId: permissionId },
-            success: function(response) {
-                if (response.success) {
-                    showPermissionRoleModalAlert(response.message, 'success');
-                    loadPermissionRoles(permissionId);
-                    loadAvailableRolesForPermission(permissionId);
-                } else {
-                    showPermissionRoleModalAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showPermissionRoleModalAlert('Rol atanırken hata oluştu!', 'error');
-            },
-            complete: function() {
-                // Reset button state
-                $button.html('<i class="bi bi-plus"></i>').prop('disabled', false);
-            }
-        });
-    });
-
-    $(document).on('click', '.remove-permission-role', function() {
-        var roleId = $(this).data('role-id');
-        var permissionId = $('#permissionRoleModal').data('permission-id');
-        var $button = $(this);
-        
-        // Show loading state
-        $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
-        
-        $.ajax({
-            url: '/Permission/RemovePermissionFromRole',
-            type: 'DELETE',
-            data: { roleId: roleId, permissionId: permissionId },
-            success: function(response) {
-                if (response.success) {
-                    showPermissionRoleModalAlert(response.message, 'success');
-                    loadPermissionRoles(permissionId);
-                    loadAvailableRolesForPermission(permissionId);
-                } else {
-                    showPermissionRoleModalAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showPermissionRoleModalAlert('Rol kaldırılırken hata oluştu!', 'error');
-            },
-            complete: function() {
-                // Reset button state
-                $button.html('<i class="bi bi-x"></i>').prop('disabled', false);
-            }
-        });
-    });
-
-    // User Actions
-    $(document).on('click', '.add-permission-user', function() {
-        var userId = $(this).data('user-id');
-        var permissionId = $('#permissionUserModal').data('permission-id');
-        var $button = $(this);
-        
-        // Show loading state
-        $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
-        
-        $.ajax({
-            url: '/Permission/AssignPermissionToUser',
-            type: 'POST',
-            data: { userId: userId, permissionId: permissionId },
-            success: function(response) {
-                if (response.success) {
-                    showPermissionUserModalAlert(response.message, 'success');
-                    loadPermissionUsers(permissionId);
-                    loadAvailableUsersForPermission(permissionId);
-                } else {
-                    showPermissionUserModalAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showPermissionUserModalAlert('Kullanıcı atanırken hata oluştu!', 'error');
-            },
-            complete: function() {
-                // Reset button state
-                $button.html('<i class="bi bi-plus"></i>').prop('disabled', false);
-            }
-        });
-    });
-
-    $(document).on('click', '.remove-permission-user', function() {
-        var userId = $(this).data('user-id');
-        var permissionId = $('#permissionUserModal').data('permission-id');
-        var $button = $(this);
-        
-        // Show loading state
-        $button.html('<span class="loading-spinner"></span>').prop('disabled', true);
-        
-        $.ajax({
-            url: '/Permission/RemovePermissionFromUser',
-            type: 'DELETE',
-            data: { userId: userId, permissionId: permissionId },
-            success: function(response) {
-                if (response.success) {
-                    showPermissionUserModalAlert(response.message, 'success');
-                    loadPermissionUsers(permissionId);
-                    loadAvailableUsersForPermission(permissionId);
-                } else {
-                    showPermissionUserModalAlert(response.error, 'error');
-                }
-            },
-            error: function() {
-                showPermissionUserModalAlert('Kullanıcı kaldırılırken hata oluştu!', 'error');
-            },
-            complete: function() {
-                // Reset button state
-                $button.html('<i class="bi bi-x"></i>').prop('disabled', false);
-            }
-        });
-    });
-
-    // Search Functions
-    $('#permissionRoleSearchInput').on('input', function() {
-        var search = $(this).val();
-        var permissionId = $('#permissionRoleModal').data('permission-id');
-        loadAvailableRolesForPermission(permissionId, search);
-    });
-
-    $('#permissionUserSearchInput').on('input', function() {
-        var search = $(this).val();
-        var permissionId = $('#permissionUserModal').data('permission-id');
-        loadAvailableUsersForPermission(permissionId, search);
-    });
 
     // Initialize
-    initDataTable();
+    initDataGrid();
 }
+
+// Responsive Design Enhancements
+$(window).resize(function() {
+    // Adjust modal sizes for mobile
+    if ($(window).width() < 768) {
+        $('.modal-dialog').removeClass('modal-lg modal-xl').addClass('modal-sm');
+    } else if ($(window).width() < 992) {
+        $('.modal-dialog').removeClass('modal-xl').addClass('modal-lg');
+    } else {
+        $('.modal-dialog').removeClass('modal-sm modal-lg').addClass('modal-xl');
+    }
+});
+
+// Initialize responsive behavior on page load
+$(document).ready(function() {
+    $(window).trigger('resize');
+});
