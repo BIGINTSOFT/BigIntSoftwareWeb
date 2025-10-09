@@ -16,7 +16,7 @@ namespace Bussiness.Repository.Concrete
         public async Task<List<Menu>> GetRootMenusAsync()
         {
             return await _context.Menus
-                .Where(m => m.ParentId == null && m.IsActive)
+                .Where(m => m.ParentId == null && m.IsActive && m.IsVisible)
                 .OrderBy(m => m.SortOrder)
                 .ToListAsync();
         }
@@ -24,7 +24,7 @@ namespace Bussiness.Repository.Concrete
         public async Task<List<Menu>> GetChildMenusAsync(int parentId)
         {
             return await _context.Menus
-                .Where(m => m.ParentId == parentId && m.IsActive)
+                .Where(m => m.ParentId == parentId && m.IsActive && m.IsVisible)
                 .OrderBy(m => m.SortOrder)
                 .ToListAsync();
         }
@@ -79,6 +79,7 @@ namespace Bussiness.Repository.Concrete
             var roleMenus = await _context.RoleMenus
                 .Where(rm => rm.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))
                 .Where(rm => rm.IsActive)
+                .Where(rm => rm.Menu.IsActive && rm.Menu.IsVisible)
                 .Include(rm => rm.Menu)
                 .Select(rm => rm.Menu)
                 .ToListAsync();
@@ -86,6 +87,7 @@ namespace Bussiness.Repository.Concrete
             // Kullanıcının direkt erişebileceği menüler
             var userMenus = await _context.UserMenus
                 .Where(um => um.UserId == userId && um.IsActive)
+                .Where(rm => rm.Menu.IsActive && rm.Menu.IsVisible)
                 .Include(um => um.Menu)
                 .Select(um => um.Menu)
                 .ToListAsync();
@@ -99,6 +101,7 @@ namespace Bussiness.Repository.Concrete
             var roleMenus = await _context.RoleMenuPermissions
                 .Where(rmp => rmp.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))
                 .Where(rmp => rmp.PermissionLevel == permissionLevel && rmp.IsActive)
+                .Where(mn => mn.Menu.IsActive && mn.Menu.IsVisible)
                 .Include(rmp => rmp.Menu)
                 .Select(rmp => rmp.Menu)
                 .ToListAsync();
@@ -106,6 +109,7 @@ namespace Bussiness.Repository.Concrete
             // Kullanıcı üzerinden izin kontrolü
             var userMenus = await _context.UserMenuPermissions
                 .Where(ump => ump.UserId == userId && ump.PermissionLevel == permissionLevel && ump.IsActive)
+                .Where(mn=>mn.Menu.IsActive && mn.Menu.IsVisible)
                 .Include(ump => ump.Menu)
                 .Select(ump => ump.Menu)
                 .ToListAsync();
@@ -118,7 +122,7 @@ namespace Bussiness.Repository.Concrete
             // Rol üzerinden kontrol
             var roleAccess = await _context.RoleMenuPermissions
                 .Where(rmp => rmp.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))
-                .Where(rmp => rmp.MenuId == menuId && rmp.PermissionLevel == permissionLevel && rmp.IsActive)
+                .Where(rmp => rmp.MenuId == menuId && rmp.PermissionLevel == permissionLevel && rmp.IsActive && rmp.Menu.IsActive)
                 .AnyAsync();
 
             if (roleAccess)
@@ -136,6 +140,7 @@ namespace Bussiness.Repository.Concrete
         {
             return await _context.UserMenus
                 .Where(um => um.UserId == userId && um.IsActive)
+                .Where(um => um.Menu.IsActive)
                 .Include(um => um.Menu)
                 .ToListAsync();
         }

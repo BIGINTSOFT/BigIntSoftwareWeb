@@ -51,7 +51,7 @@ namespace Web.ViewComponents
         private IEnumerable<Menu> GetChildMenus(int parentId, List<Menu> allMenus)
         {
             return allMenus
-                .Where(m => m.ParentId == parentId)
+                .Where(m => m.ParentId == parentId && m.IsVisible && m.IsActive)
                 .OrderBy(m => m.SortOrder)
                 .Select(m =>
                 {
