@@ -1,0 +1,1546 @@
+@using Web.Helpers
+
+@{
+    ViewData["Title"] = "Müşteri Yönetimi";
+}
+
+
+<!-- İstatistik Paneli -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Toplam Müşteri</h6>
+                        <h3 id="totalCustomers">-</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-people fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Aktif Müşteri</h6>
+                        <h3 id="activeCustomers">-</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-person-check fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Toplam Satış</h6>
+                        <h3 id="totalSales">-</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-currency-dollar fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DevExtreme DataGrid -->
+<div class="card-header modern-header">
+    <div class="header-content">
+        <div class="header-icon">
+            <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="header-text">
+            <h5 class="header-title">Müşteri Yönetimi</h5>
+            <p class="header-subtitle">Müşteri bilgilerini yönetin ve düzenleyin</p>
+        </div>
+    </div>
+</div>
+<div class="card-body" style="padding: 0.5rem 0.375rem 0 0.375rem;">
+    <div id="customersDataGrid" class="dx-datagrid-container"></div>
+</div>
+
+<!-- Customer Modal -->
+<div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-slide modal-xl">
+        <div class="modal-content modern-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customerModalLabel">Müşteri Bilgileri</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="customerForm">
+                    <input type="hidden" id="customerId" name="Id" />
+                    
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs mb-4" id="customerTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
+                                <i class="bi bi-person me-2"></i>Temel Bilgiler
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab">
+                                <i class="bi bi-telephone me-2"></i>İletişim
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab">
+                                <i class="bi bi-geo-alt me-2"></i>Adres
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tax-tab" data-bs-toggle="tab" data-bs-target="#tax" type="button" role="tab">
+                                <i class="bi bi-receipt me-2"></i>Vergi & Resmi
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="bank-tab" data-bs-toggle="tab" data-bs-target="#bank" type="button" role="tab">
+                                <i class="bi bi-bank me-2"></i>Banka
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="business-tab" data-bs-toggle="tab" data-bs-target="#business" type="button" role="tab">
+                                <i class="bi bi-briefcase me-2"></i>Ticari
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="einvoice-tab" data-bs-toggle="tab" data-bs-target="#einvoice" type="button" role="tab">
+                                <i class="bi bi-file-earmark-text me-2"></i>E-Fatura
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="other-tab" data-bs-toggle="tab" data-bs-target="#other" type="button" role="tab">
+                                <i class="bi bi-gear me-2"></i>Diğer
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="customerTabContent">
+                        <!-- Temel Bilgiler Tab -->
+                        <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="companyName" class="form-label">Şirket Adı <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm" id="companyName" name="CompanyName" required>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="customerType" class="form-label">Müşteri Tipi</label>
+                                        <select class="form-select form-select-sm" id="customerType" name="CustomerType">
+                                            <option value="">Seçiniz</option>
+                                            <option value="Bireysel">Bireysel</option>
+                                            <option value="Kurumsal">Kurumsal</option>
+                                            <option value="Kamu">Kamu</option>
+                                            <option value="STK">STK</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="firstName" class="form-label">Ad</label>
+                                        <input type="text" class="form-control form-control-sm" id="firstName" name="FirstName">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="lastName" class="form-label">Soyad</label>
+                                        <input type="text" class="form-control form-control-sm" id="lastName" name="LastName">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="contactPerson" class="form-label">İletişim Kişisi</label>
+                                        <input type="text" class="form-control form-control-sm" id="contactPerson" name="ContactPerson">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="customerGroup" class="form-label">Müşteri Grubu</label>
+                                        <input type="text" class="form-control form-control-sm" id="customerGroup" name="CustomerGroup">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="customerSegment" class="form-label">Müşteri Segmenti</label>
+                                        <input type="text" class="form-control form-control-sm" id="customerSegment" name="CustomerSegment">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="isActive" name="IsActive" checked>
+                                            <label class="form-check-label" for="isActive">
+                                                Aktif Müşteri
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- İletişim Tab -->
+                        <div class="tab-pane fade" id="contact" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="phone" class="form-label">Telefon</label>
+                                        <input type="text" class="form-control form-control-sm" id="phone" name="Phone">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="mobilePhone" class="form-label">Cep Telefonu</label>
+                                        <input type="text" class="form-control form-control-sm" id="mobilePhone" name="MobilePhone">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">E-posta</label>
+                                        <input type="email" class="form-control form-control-sm" id="email" name="Email">
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="website" class="form-label">Web Sitesi</label>
+                                        <input type="url" class="form-control form-control-sm" id="website" name="Website">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="linkedin" class="form-label">LinkedIn</label>
+                                        <input type="url" class="form-control form-control-sm" id="linkedin" name="LinkedIn">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="twitter" class="form-label">Twitter</label>
+                                        <input type="url" class="form-control form-control-sm" id="twitter" name="Twitter">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Adres Tab -->
+                        <div class="tab-pane fade" id="address" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="address" class="form-label">Adres</label>
+                                        <textarea class="form-control form-control-sm" id="address" name="Address" rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="city" class="form-label">Şehir</label>
+                                        <input type="text" class="form-control form-control-sm" id="city" name="City">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="state" class="form-label">İl</label>
+                                        <input type="text" class="form-control form-control-sm" id="state" name="State">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="postalCode" class="form-label">Posta Kodu</label>
+                                        <input type="text" class="form-control form-control-sm" id="postalCode" name="PostalCode">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="country" class="form-label">Ülke</label>
+                                        <input type="text" class="form-control form-control-sm" id="country" name="Country" value="Türkiye">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Teslimat Adresi -->
+                            <hr>
+                            <h6 class="text-muted">Teslimat Adresi</h6>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="deliveryAddress" class="form-label">Teslimat Adresi</label>
+                                        <textarea class="form-control form-control-sm" id="deliveryAddress" name="DeliveryAddress" rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="deliveryCity" class="form-label">Teslimat Şehri</label>
+                                        <input type="text" class="form-control form-control-sm" id="deliveryCity" name="DeliveryCity">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="deliveryPostalCode" class="form-label">Teslimat Posta Kodu</label>
+                                        <input type="text" class="form-control form-control-sm" id="deliveryPostalCode" name="DeliveryPostalCode">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vergi & Resmi Tab -->
+                        <div class="tab-pane fade" id="tax" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="tcNumber" class="form-label">TC Kimlik No</label>
+                                        <input type="text" class="form-control form-control-sm" id="tcNumber" name="TcNumber" maxlength="11">
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="taxNumber" class="form-label">Vergi Numarası</label>
+                                        <input type="text" class="form-control form-control-sm" id="taxNumber" name="TaxNumber" maxlength="10">
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="taxOffice" class="form-label">Vergi Dairesi</label>
+                                        <input type="text" class="form-control form-control-sm" id="taxOffice" name="TaxOffice">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="taxOfficeCode" class="form-label">Vergi Dairesi Kodu</label>
+                                        <input type="text" class="form-control form-control-sm" id="taxOfficeCode" name="TaxOfficeCode">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="eInvoiceAlias" class="form-label">E-Fatura Alias</label>
+                                        <input type="text" class="form-control form-control-sm" id="eInvoiceAlias" name="EInvoiceAlias">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="eInvoiceTitle" class="form-label">E-Fatura Unvan</label>
+                                        <input type="text" class="form-control form-control-sm" id="eInvoiceTitle" name="EInvoiceTitle">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="vatNumber" class="form-label">VAT Numarası</label>
+                                        <input type="text" class="form-control form-control-sm" id="vatNumber" name="VatNumber">
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="vatCountryCode" class="form-label">VAT Ülke Kodu</label>
+                                        <input type="text" class="form-control form-control-sm" id="vatCountryCode" name="VatCountryCode">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="legalEntityType" class="form-label">Hukuki Durum</label>
+                                        <select class="form-select form-select-sm" id="legalEntityType" name="LegalEntityType">
+                                            <option value="">Seçiniz</option>
+                                            <option value="Şahıs">Şahıs</option>
+                                            <option value="Limited">Limited Şirket</option>
+                                            <option value="Anonim">Anonim Şirket</option>
+                                            <option value="Kollektif">Kollektif Şirket</option>
+                                            <option value="Komandit">Komandit Şirket</option>
+                                            <option value="Kooperatif">Kooperatif</option>
+                                            <option value="Dernek">Dernek</option>
+                                            <option value="Vakıf">Vakıf</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Banka Tab -->
+                        <div class="tab-pane fade" id="bank" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="bankName" class="form-label">Banka Adı</label>
+                                        <input type="text" class="form-control form-control-sm" id="bankName" name="BankName">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="bankBranch" class="form-label">Banka Şubesi</label>
+                                        <input type="text" class="form-control form-control-sm" id="bankBranch" name="BankBranch">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="bankAccountNumber" class="form-label">Hesap Numarası</label>
+                                        <input type="text" class="form-control form-control-sm" id="bankAccountNumber" name="BankAccountNumber">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="iban" class="form-label">IBAN</label>
+                                        <input type="text" class="form-control form-control-sm" id="iban" name="Iban">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="swiftCode" class="form-label">SWIFT Kodu</label>
+                                        <input type="text" class="form-control form-control-sm" id="swiftCode" name="SwiftCode">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ticari Tab -->
+                        <div class="tab-pane fade" id="business" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="tradeRegistryNumber" class="form-label">Ticaret Sicil No</label>
+                                        <input type="text" class="form-control form-control-sm" id="tradeRegistryNumber" name="TradeRegistryNumber">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="chamberOfCommerce" class="form-label">Ticaret Odası</label>
+                                        <input type="text" class="form-control form-control-sm" id="chamberOfCommerce" name="ChamberOfCommerce">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="mersisNumber" class="form-label">MERSİS Numarası</label>
+                                        <input type="text" class="form-control form-control-sm" id="mersisNumber" name="MersisNumber">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="activityCode" class="form-label">Faaliyet Kodu</label>
+                                        <input type="text" class="form-control form-control-sm" id="activityCode" name="ActivityCode">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="activityDescription" class="form-label">Faaliyet Açıklaması</label>
+                                        <textarea class="form-control form-control-sm" id="activityDescription" name="ActivityDescription" rows="3"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="paymentMethod" class="form-label">Ödeme Yöntemi</label>
+                                        <select class="form-select form-select-sm" id="paymentMethod" name="PaymentMethod">
+                                            <option value="">Seçiniz</option>
+                                            <option value="Nakit">Nakit</option>
+                                            <option value="Kredi Kartı">Kredi Kartı</option>
+                                            <option value="Banka Havalesi">Banka Havalesi</option>
+                                            <option value="Çek">Çek</option>
+                                            <option value="Senet">Senet</option>
+                                            <option value="Kredi">Kredi</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="paymentTermDays" class="form-label">Ödeme Vadesi (Gün)</label>
+                                        <input type="number" class="form-control form-control-sm" id="paymentTermDays" name="PaymentTermDays" min="0">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="creditLimit" class="form-label">Kredi Limiti</label>
+                                        <input type="number" class="form-control form-control-sm" id="creditLimit" name="CreditLimit" step="0.01" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="discountRate" class="form-label">İndirim Oranı (%)</label>
+                                        <input type="number" class="form-control form-control-sm" id="discountRate" name="DiscountRate" step="0.01" min="0" max="100">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="currency" class="form-label">Para Birimi</label>
+                                        <select class="form-select form-select-sm" id="currency" name="Currency">
+                                            <option value="TRY">TRY - Türk Lirası</option>
+                                            <option value="USD">USD - Amerikan Doları</option>
+                                            <option value="EUR">EUR - Euro</option>
+                                            <option value="GBP">GBP - İngiliz Sterlini</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- E-Fatura Tab -->
+                        <div class="tab-pane fade" id="einvoice" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="isEInvoiceEnabled" name="IsEInvoiceEnabled">
+                                            <label class="form-check-label" for="isEInvoiceEnabled">
+                                                E-Fatura Aktif
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="isEArchiveEnabled" name="IsEArchiveEnabled">
+                                            <label class="form-check-label" for="isEArchiveEnabled">
+                                                E-Arşiv Aktif
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="eInvoiceProfile" class="form-label">E-Fatura Profili</label>
+                                        <input type="text" class="form-control form-control-sm" id="eInvoiceProfile" name="EInvoiceProfile">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="eArchiveProfile" class="form-label">E-Arşiv Profili</label>
+                                        <input type="text" class="form-control form-control-sm" id="eArchiveProfile" name="EArchiveProfile">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Diğer Tab -->
+                        <div class="tab-pane fade" id="other" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="notes" class="form-label">Notlar</label>
+                                        <textarea class="form-control form-control-sm" id="notes" name="Notes" rows="3"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="internalNotes" class="form-label">İç Notlar</label>
+                                        <textarea class="form-control form-control-sm" id="internalNotes" name="InternalNotes" rows="3"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="source" class="form-label">Müşteri Kaynağı</label>
+                                        <input type="text" class="form-control form-control-sm" id="source" name="Source">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="language" class="form-label">Dil</label>
+                                        <select class="form-select form-select-sm" id="language" name="Language">
+                                            <option value="tr-TR">Türkçe</option>
+                                            <option value="en-US">English</option>
+                                            <option value="de-DE">Deutsch</option>
+                                            <option value="fr-FR">Français</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelCustomerBtn">
+                    <i class="bi bi-x-lg me-2"></i>
+                    İptal
+                </button>
+                <button type="button" class="btn btn-primary" id="saveCustomerBtn">
+                    <i class="bi bi-check-lg me-2"></i>
+                    Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Müşteri Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bu müşteriyi silmek istediğinizden emin misiniz?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Bu işlem geri alınamaz!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash me-2"></i>
+                    Sil
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content notification-modal">
+            <div class="modal-header" id="notificationHeader">
+                <h5 class="modal-title" id="notificationModalLabel">
+                    <i class="bi" id="notificationIcon"></i>
+                    <span id="notificationTitle"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="notificationMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tamam</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- DevExtreme CSS -->
+    <link rel="stylesheet" href="~/css/devxtreme-common.css" />
+    
+    <!-- Customer Management CSS -->
+    <style>
+        .modal-dialog-slide {
+            transition: transform 0.3s ease-out;
+        }
+        
+        .modal-dialog-slide.modal-xl {
+            max-width: 90%;
+        }
+        
+        .modern-modal .modal-content {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .modern-modal .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: #495057;
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #007bff;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            border-color: transparent;
+            color: #007bff;
+        }
+        
+        .form-control-sm, .form-select-sm {
+            font-size: 0.875rem;
+        }
+        
+        .dx-datagrid-container {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        /* Grid container için ekstra stil */
+        .dx-datagrid-container {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        /* Card body overflow ve padding */
+        .card-body {
+            overflow: visible;
+            padding: 0.5rem 0.375rem 0 0.375rem !important;
+            margin: 0 !important;
+        }
+        
+        /* Modern Header Stilleri */
+        .modern-header {
+            padding: 1rem 1.5rem !important;
+            margin-bottom: 0 !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            color: white;
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .header-icon {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-icon i {
+            font-size: 1.5rem;
+            color: white;
+        }
+        
+        .header-text {
+            flex: 1;
+        }
+        
+        .header-title {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .header-subtitle {
+            margin: 0;
+            font-size: 0.875rem;
+            opacity: 0.9;
+            color: white;
+        }
+        
+        .card-body {
+            border-radius: 0 0 8px 8px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+        }
+        
+        /* Grid font size */
+        .dx-datagrid {
+            font-size: 10px;
+        }
+        
+        /* İstatistik kartları küçültme */
+        .row.mb-4 .card-body h3 {
+            font-size: 1.2rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .row.mb-4 .card-body h6 {
+            font-size: 0.7rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .row.mb-4 .card-body .fs-1 {
+            font-size: 1.2rem !important;
+        }
+        
+        .row.mb-4 .card-body {
+            padding: 0.5rem !important;
+        }
+        
+        /* İstatistik kartları yükseklik */
+        .row.mb-4 .card {
+            min-height: auto !important;
+        }
+        
+        .row.mb-4 .card-body {
+            min-height: auto !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        /* Toolbar ile header arası boşluk */
+        .dx-datagrid-toolbar {
+            margin-bottom: 10px;
+        }
+        
+        /* Search panel görünürlüğü */
+        .dx-datagrid-search-panel {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            height: auto !important;
+            min-height: 40px !important;
+        }
+        
+        /* Search panel input */
+        .dx-datagrid-search-panel .dx-texteditor {
+            display: block !important;
+            visibility: visible !important;
+        }
+        
+        /* Toolbar ile search panel arası boşluk */
+        .dx-datagrid-search-panel {
+            margin-top: 10px !important;
+            margin-bottom: 10px !important;
+        }
+        
+        /* İşlemler sütunu butonları için stil */
+        .dx-datagrid .dx-data-row .dx-command-edit .btn {
+            margin-right: 4px;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+        }
+        
+        .dx-datagrid .dx-data-row .dx-command-edit .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .dx-datagrid .dx-data-row .dx-command-edit .btn-outline-primary:hover {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        
+        .dx-datagrid .dx-data-row .dx-command-edit .btn-outline-danger:hover {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        /* Notification Modal Stilleri */
+        .notification-modal .modal-content {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .notification-modal .modal-header {
+            border-bottom: 1px solid #e9ecef;
+            padding: 1rem 1.5rem;
+        }
+        
+        .notification-modal .modal-body {
+            padding: 1.5rem;
+            font-size: 1rem;
+        }
+        
+        .notification-modal .modal-footer {
+            border-top: 1px solid #e9ecef;
+            padding: 1rem 1.5rem;
+        }
+        
+        /* Başarı mesajı */
+        .notification-modal .modal-header.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .notification-modal .modal-header.success .btn-close {
+            filter: invert(1);
+        }
+        
+        /* Hata mesajı */
+        .notification-modal .modal-header.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            color: white;
+        }
+        
+        .notification-modal .modal-header.danger .btn-close {
+            filter: invert(1);
+        }
+        
+        /* Uyarı mesajı */
+        .notification-modal .modal-header.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            color: white;
+        }
+        
+        .notification-modal .modal-header.warning .btn-close {
+            filter: invert(1);
+        }
+        
+        /* Bilgi mesajı */
+        .notification-modal .modal-header.info {
+            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+            color: white;
+        }
+        
+        .notification-modal .modal-header.info .btn-close {
+            filter: invert(1);
+        }
+    </style>
+    
+    <!-- Customer Management JS -->
+    <script>
+        $(document).ready(function() {
+            // İstatistikleri yükle
+            loadUpdateStatistics();
+
+            // DataGrid'i başlat
+            initializeDataGrid();
+            
+            // Window resize event'i
+            $(window).on('resize', function() {
+                adjustGridHeight();
+            });
+            
+            // İlk yüklemede yüksekliği ayarla
+            adjustGridHeight();
+
+            // Grid yüksekliğini dinamik olarak ayarla
+            function adjustGridHeight() {
+                var windowHeight = $(window).height();
+                
+                // Grid container'ının pozisyonunu al
+                var gridContainer = $('.dx-datagrid-container');
+                var gridTop = gridContainer.offset().top;
+                
+                // Sayfanın alt kısmına kadar olan mesafe
+                var windowBottom = windowHeight;
+                var gridBottom = windowBottom - gridTop - 20; // 20px margin
+                
+                // Minimum yükseklik
+                if (gridBottom < 200) {
+                    gridBottom = 200;
+                }
+                
+                console.log('Grid Height Calculation:', {
+                    windowHeight: windowHeight,
+                    gridTop: gridTop,
+                    gridBottom: gridBottom
+                });
+                
+                // Sadece grid yüksekliğini ayarla
+                $("#customersDataGrid").dxDataGrid("option", "height", gridBottom);
+            }
+
+            // Müşteri düzenleme
+            function editCustomer(id) {
+                $.get("/Customers/GetCustomer", { id: id })
+                    .done(function(response) {
+                        if (response.success) {
+                            var customer = response.data;
+                            populateForm(customer);
+                            $("#customerModalLabel").text("Müşteri Düzenle");
+                            $("#customerModal").modal("show");
+                        } else {
+                            showAlert("Hata", response.error, "danger");
+                        }
+                    })
+                    .fail(function() {
+                        showAlert("Hata", "Müşteri bilgileri alınamadı.", "danger");
+                    });
+            }
+
+            // Müşteri silme
+            function deleteCustomer(id) {
+                $("#confirmDeleteBtn").off("click").on("click", function() {
+                    $.post("/Customers/DeleteCustomer", { id: id })
+                        .done(function(response) {
+                            if (response.success) {
+                                showAlert("Başarılı", response.message, "success");
+                                $("#customersDataGrid").dxDataGrid("refresh");
+                                $("#deleteModal").modal("hide");
+                            } else {
+                                showAlert("Hata", response.message, "danger");
+                            }
+                        })
+                        .fail(function() {
+                            showAlert("Hata", "Müşteri silinemedi.", "danger");
+                        });
+                });
+                $("#deleteModal").modal("show");
+            }
+
+            // Form doldurma
+            function populateForm(customer) {
+                $("#customerId").val(customer.Id);
+                $("#companyName").val(customer.CompanyName);
+                $("#firstName").val(customer.FirstName);
+                $("#lastName").val(customer.LastName);
+                $("#contactPerson").val(customer.ContactPerson);
+                $("#customerType").val(customer.CustomerType);
+                $("#customerGroup").val(customer.CustomerGroup);
+                $("#customerSegment").val(customer.CustomerSegment);
+                $("#isActive").prop("checked", customer.IsActive);
+                
+                // İletişim
+                $("#phone").val(customer.Phone);
+                $("#mobilePhone").val(customer.MobilePhone);
+                $("#email").val(customer.Email);
+                $("#website").val(customer.Website);
+                $("#linkedin").val(customer.LinkedIn);
+                $("#twitter").val(customer.Twitter);
+                
+                // Adres
+                $("#address").val(customer.Address);
+                $("#city").val(customer.City);
+                $("#state").val(customer.State);
+                $("#postalCode").val(customer.PostalCode);
+                $("#country").val(customer.Country);
+                $("#deliveryAddress").val(customer.DeliveryAddress);
+                $("#deliveryCity").val(customer.DeliveryCity);
+                $("#deliveryPostalCode").val(customer.DeliveryPostalCode);
+                
+                // Vergi
+                $("#tcNumber").val(customer.TcNumber);
+                $("#taxNumber").val(customer.TaxNumber);
+                $("#taxOffice").val(customer.TaxOffice);
+                $("#taxOfficeCode").val(customer.TaxOfficeCode);
+                $("#eInvoiceAlias").val(customer.EInvoiceAlias);
+                $("#eInvoiceTitle").val(customer.EInvoiceTitle);
+                $("#vatNumber").val(customer.VatNumber);
+                $("#vatCountryCode").val(customer.VatCountryCode);
+                $("#legalEntityType").val(customer.LegalEntityType);
+                
+                // Banka
+                $("#bankName").val(customer.BankName);
+                $("#bankBranch").val(customer.BankBranch);
+                $("#bankAccountNumber").val(customer.BankAccountNumber);
+                $("#iban").val(customer.Iban);
+                $("#swiftCode").val(customer.SwiftCode);
+                
+                // Ticari
+                $("#tradeRegistryNumber").val(customer.TradeRegistryNumber);
+                $("#chamberOfCommerce").val(customer.ChamberOfCommerce);
+                $("#mersisNumber").val(customer.MersisNumber);
+                $("#activityCode").val(customer.ActivityCode);
+                $("#activityDescription").val(customer.ActivityDescription);
+                $("#paymentMethod").val(customer.PaymentMethod);
+                $("#paymentTermDays").val(customer.PaymentTermDays);
+                $("#creditLimit").val(customer.CreditLimit);
+                $("#discountRate").val(customer.DiscountRate);
+                $("#currency").val(customer.Currency);
+                
+                // E-Fatura
+                $("#isEInvoiceEnabled").prop("checked", customer.IsEInvoiceEnabled);
+                $("#isEArchiveEnabled").prop("checked", customer.IsEArchiveEnabled);
+                $("#eInvoiceProfile").val(customer.EInvoiceProfile);
+                $("#eArchiveProfile").val(customer.EArchiveProfile);
+                
+                // Diğer
+                $("#notes").val(customer.Notes);
+                $("#internalNotes").val(customer.InternalNotes);
+                $("#source").val(customer.Source);
+                $("#language").val(customer.Language);
+            }
+
+            // Form sıfırlama
+            function resetForm() {
+                $("#customerForm")[0].reset();
+                $("#customerId").val("");
+                $("#country").val("Türkiye");
+                $("#currency").val("TRY");
+                $("#language").val("tr-TR");
+                $("#isActive").prop("checked", true);
+            }
+
+            // Müşteri kaydetme
+            $("#saveCustomerBtn").click(function() {
+                var formData = $("#customerForm").serializeArray();
+                var customerData = {};
+                
+                $.each(formData, function(i, field) {
+                    customerData[field.name] = field.value;
+                });
+
+                // Boolean değerleri düzelt
+                customerData.IsActive = $("#isActive").is(":checked");
+                customerData.IsEInvoiceEnabled = $("#isEInvoiceEnabled").is(":checked");
+                customerData.IsEArchiveEnabled = $("#isEArchiveEnabled").is(":checked");
+                
+                // Sayısal değerleri düzelt
+                if (customerData.PaymentTermDays && customerData.PaymentTermDays !== "") {
+                    customerData.PaymentTermDays = parseInt(customerData.PaymentTermDays);
+                } else {
+                    customerData.PaymentTermDays = null;
+                }
+                
+                if (customerData.CreditLimit && customerData.CreditLimit !== "") {
+                    customerData.CreditLimit = parseFloat(customerData.CreditLimit);
+                } else {
+                    customerData.CreditLimit = null;
+                }
+                
+                if (customerData.DiscountRate && customerData.DiscountRate !== "") {
+                    customerData.DiscountRate = parseFloat(customerData.DiscountRate);
+                } else {
+                    customerData.DiscountRate = null;
+                }
+
+                // Debug bilgisi
+                console.log("Gönderilen veri:", customerData);
+                console.log("ID değeri:", customerData.Id);
+
+                var url = customerData.Id ? "/Customers/UpdateCustomerJson" : "/Customers/CreateCustomerJson";
+                var method = customerData.Id ? "POST" : "POST";
+
+                $.ajax({
+                    url: url,
+                    type: method,
+                    contentType: "application/json",
+                    data: JSON.stringify(customerData),
+                    success: function(response) {
+                        console.log("Server yanıtı:", response);
+                        if (response.success) {
+                            showAlert("Başarılı", response.message, "success");
+                            $("#customerModal").modal("hide");
+                            $("#customersDataGrid").dxDataGrid("refresh");
+                        } else {
+                            showAlert("Hata", response.message, "danger");
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("AJAX hatası:", xhr.responseText);
+                        showAlert("Hata", "İşlem gerçekleştirilemedi: " + error, "danger");
+                    }
+                });
+            });
+
+            // İptal butonu
+            $("#cancelCustomerBtn").click(function() {
+                $("#customerModal").modal("hide");
+            });
+
+
+
+            // DataGrid'i güvenli şekilde yenile
+            function refreshDataGrid() {
+                try {
+                    $("#customersDataGrid").dxDataGrid("refresh");
+                } catch (error) {
+                    console.error("DataGrid refresh error:", error);
+                    // DataGrid'i yeniden oluştur
+                    $("#customersDataGrid").dxDataGrid("dispose");
+                    initializeDataGrid();
+                }
+            }
+
+            // DataGrid'i başlat
+            function initializeDataGrid() {
+                $("#customersDataGrid").dxDataGrid({
+                    dataSource: {
+                        load: function() {
+                            return $.get("/Customers/GetCustomers").then(function(response) {
+                                console.log("API Response:", response);
+                                if (response && response.success && Array.isArray(response.data)) {
+                                    return response.data;
+                                } else {
+                                    console.warn("Invalid data received:", response);
+                                    return [];
+                                }
+                            }).catch(function(error) {
+                                console.error("Error loading customers:", error);
+                                return [];
+                            });
+                        }
+                    },
+                    keyExpr: "Id",
+                    height: "calc(100vh - 300px)", // Viewport height - header ve diğer elementler
+                    showBorders: true,
+                    showRowLines: true,
+                    showColumnLines: true,
+                    columnAutoWidth: true,
+                    wordWrapEnabled: true,
+                    allowColumnReordering: true,
+                    allowColumnResizing: true,
+                    columnChooser: {
+                        enabled: true,
+                        mode: "select"
+                    },
+                    searchPanel: {
+                        visible: true,
+                        width: 300,
+                        placeholder: "Müşteri ara...",
+                        highlightCaseSensitive: false,
+                        searchVisibleColumnsOnly: false
+                    },
+                    headerFilter: {
+                        visible: true
+                    },
+                    filterRow: {
+                        visible: true
+                    },
+                    paging: {
+                        pageSize: 20
+                    },
+                    pager: {
+                        showPageSizeSelector: true,
+                        allowedPageSizes: [10, 20, 50, 100],
+                        showInfo: true
+                    },
+                    toolbar: {
+                        items: [
+                            {
+                                location: "before",
+                                widget: "dxButton",
+                                options: {
+                                    text: "Yenile",
+                                    icon: "refresh",
+                                    type: "success",
+                                    onClick: function() {
+                                        refreshDataGrid();
+                                        loadUpdateStatistics();
+                                    }
+                                }
+                            },
+                            {
+                                location: "before",
+                                widget: "dxButton",
+                                options: {
+                                    text: "Dışa Aktar",
+                                    icon: "export",
+                                    type: "info",
+                                    onClick: function() {
+                                        $("#customersDataGrid").dxDataGrid("exportToExcel", {
+                                            fileName: "Musteriler_" + new Date().toISOString().slice(0, 10)
+                                        });
+                                    }
+                                }
+                            },
+                            {
+                                location: "before",
+                                widget: "dxButton",
+                                options: {
+                                    text: "Yeni Müşteri",
+                                    icon: "plus",
+                                    type: "default",
+                                    onClick: function() {
+                                        resetForm();
+                                        $("#customerModalLabel").text("Yeni Müşteri");
+                                        $("#customerModal").modal("show");
+                                    }
+                                }
+                            },
+                            {
+                                location: "after",
+                                widget: "dxButton",
+                                options: {
+                                    icon: "columnchooser",
+                                    hint: "Sütun Seçici",
+                                    onClick: function() {
+                                        $("#customersDataGrid").dxDataGrid("showColumnChooser");
+                                    }
+                                }
+                            },
+                            {
+                                location: "after",
+                                widget: "dxTextBox",
+                                options: {
+                                    placeholder: "Müşteri ara...",
+                                    width: 200,
+                                    onValueChanged: function(e) {
+                                        $("#customersDataGrid").dxDataGrid("searchByText", e.value);
+                                    }
+                                }
+                            },
+                        ]
+                    },
+                    columns: [
+                        {
+                            caption: "İşlemler",
+                            width: 120,
+                            allowSorting: false,
+                            allowFiltering: false,
+                            alignment: "center",
+                            headerCellTemplate: function(container, options) {
+                                container.append('<div style="text-align: center; font-weight: 500;">İşlemler</div>');
+                            },
+                            cellTemplate: function(container, options) {
+                                var buttonContainer = $("<div>").css({
+                                    "display": "flex",
+                                    "justify-content": "center",
+                                    "align-items": "center",
+                                    "gap": "4px"
+                                });
+                                
+                                var editBtn = $("<button>")
+                                    .addClass("btn btn-sm btn-outline-primary")
+                                    .html('<i class="bi bi-pencil"></i>')
+                                    .attr("title", "Düzenle")
+                                    .click(function(e) {
+                                        e.stopPropagation();
+                                        editCustomer(options.data.Id);
+                                    });
+                                
+                                var deleteBtn = $("<button>")
+                                    .addClass("btn btn-sm btn-outline-danger")
+                                    .html('<i class="bi bi-trash"></i>')
+                                    .attr("title", "Sil")
+                                    .click(function(e) {
+                                        e.stopPropagation();
+                                        deleteCustomer(options.data.Id);
+                                    });
+                                
+                                buttonContainer.append(editBtn).append(deleteBtn);
+                                container.append(buttonContainer);
+                            }
+                        },
+                        {
+                            dataField: "Id",
+                            caption: "ID",
+                            width: 60,
+                            allowSorting: false
+                        },
+                        {
+                            dataField: "CompanyName",
+                            caption: "Şirket Adı",
+                            width: 200
+                        },
+                        {
+                            dataField: "FirstName",
+                            caption: "Ad",
+                            width: 120
+                        },
+                        {
+                            dataField: "LastName",
+                            caption: "Soyad",
+                            width: 120
+                        },
+                        {
+                            dataField: "ContactPerson",
+                            caption: "İletişim Kişisi",
+                            width: 150
+                        },
+                        {
+                            dataField: "Email",
+                            caption: "E-posta",
+                            width: 180
+                        },
+                        {
+                            dataField: "Phone",
+                            caption: "Telefon",
+                            width: 120
+                        },
+                        {
+                            dataField: "MobilePhone",
+                            caption: "Cep Telefonu",
+                            width: 120
+                        },
+                        {
+                            dataField: "Website",
+                            caption: "Web Sitesi",
+                            width: 150
+                        },
+                        {
+                            dataField: "Address",
+                            caption: "Adres",
+                            width: 200
+                        },
+                        {
+                            dataField: "City",
+                            caption: "Şehir",
+                            width: 100
+                        },
+                        {
+                            dataField: "State",
+                            caption: "İl",
+                            width: 100
+                        },
+                        {
+                            dataField: "PostalCode",
+                            caption: "Posta Kodu",
+                            width: 100
+                        },
+                        {
+                            dataField: "Country",
+                            caption: "Ülke",
+                            width: 100
+                        },
+                        {
+                            dataField: "TcNumber",
+                            caption: "TC No",
+                            width: 120
+                        },
+                        {
+                            dataField: "TaxNumber",
+                            caption: "Vergi No",
+                            width: 120
+                        },
+                        {
+                            dataField: "TaxOffice",
+                            caption: "Vergi Dairesi",
+                            width: 150
+                        },
+                        {
+                            dataField: "CustomerType",
+                            caption: "Müşteri Tipi",
+                            width: 120
+                        },
+                        {
+                            dataField: "BankName",
+                            caption: "Banka",
+                            width: 150
+                        },
+                        {
+                            dataField: "Iban",
+                            caption: "IBAN",
+                            width: 200
+                        },
+                        {
+                            dataField: "Currency",
+                            caption: "Para Birimi",
+                            width: 100
+                        },
+                        {
+                            dataField: "TotalSales",
+                            caption: "Toplam Satış",
+                            width: 120,
+                            dataType: "number",
+                            format: "currency"
+                        },
+                        {
+                            dataField: "IsActive",
+                            caption: "Durum",
+                            width: 80,
+                            cellTemplate: function(container, options) {
+                                var isActive = options.value;
+                                var badgeClass = isActive ? "badge bg-success" : "badge bg-danger";
+                                var text = isActive ? "Aktif" : "Pasif";
+                                container.append($("<span>").addClass(badgeClass).text(text));
+                            }
+                        },
+                        {
+                            dataField: "CreatedDate",
+                            caption: "Oluşturma Tarihi",
+                            width: 120,
+                            dataType: "datetime",
+                            format: "dd.MM.yyyy"
+                        }
+                    ]
+                });
+            }
+
+            // İstatistikleri yükle
+            function loadUpdateStatistics() {
+                $.get("/Customers/GetUpdateStatistics")
+                    .done(function(response) {
+                        if (response && response.success && response.data) {
+                            var data = response.data;
+                            $("#totalCustomers").text((data.totalCustomers || 0).toLocaleString());
+                            $("#activeCustomers").text((data.activeCustomers || 0).toLocaleString());
+                            $("#totalSales").text((data.totalSales || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }));
+                        } else {
+                            console.warn("İstatistik verisi alınamadı:", response);
+                            $("#totalCustomers").text("0");
+                            $("#activeCustomers").text("0");
+                            $("#totalSales").text("₺0");
+                        }
+                    })
+                    .fail(function(xhr, status, error) {
+                        console.error("İstatistik yükleme hatası:", error);
+                        $("#totalCustomers").text("0");
+                        $("#activeCustomers").text("0");
+                        $("#totalSales").text("₺0");
+                    });
+            }
+
+            // Modal tabanlı bildirim gösterme fonksiyonu
+            function showAlert(title, message, type) {
+                // Modal elementlerini al
+                var modal = $("#notificationModal");
+                var header = $("#notificationHeader");
+                var icon = $("#notificationIcon");
+                var titleElement = $("#notificationTitle");
+                var messageElement = $("#notificationMessage");
+                
+                // Önceki sınıfları temizle
+                header.removeClass("success danger warning info");
+                
+                // Tip'e göre stil ve ikon ayarla
+                var iconClass = "";
+                switch(type) {
+                    case "success":
+                        header.addClass("success");
+                        iconClass = "bi-check-circle-fill";
+                        break;
+                    case "danger":
+                        header.addClass("danger");
+                        iconClass = "bi-exclamation-triangle-fill";
+                        break;
+                    case "warning":
+                        header.addClass("warning");
+                        iconClass = "bi-exclamation-triangle-fill";
+                        break;
+                    case "info":
+                        header.addClass("info");
+                        iconClass = "bi-info-circle-fill";
+                        break;
+                    default:
+                        header.addClass("info");
+                        iconClass = "bi-info-circle-fill";
+                }
+                
+                // İkon ve metinleri ayarla
+                icon.removeClass().addClass("bi " + iconClass + " me-2");
+                titleElement.text(title);
+                messageElement.text(message);
+                
+                // Modal'ı göster
+                modal.modal("show");
+            }
+        });
+    </script>
+}

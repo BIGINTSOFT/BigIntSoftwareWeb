@@ -18,6 +18,7 @@ namespace DataAccess.DbContext
         public DbSet<UserMenuPermission> UserMenuPermissions { get; set; }
         public DbSet<RoleMenu> RoleMenus { get; set; }
         public DbSet<RoleMenuPermission> RoleMenuPermissions { get; set; }
+        public DbSet<Customers> CustomerSet { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -216,6 +217,130 @@ namespace DataAccess.DbContext
                       .HasForeignKey(e => e.AssignedBy)
                       .OnDelete(DeleteBehavior.NoAction);
                 entity.HasIndex(e => new { e.RoleId, e.MenuId, e.PermissionId }).IsUnique();
+            });
+
+            // Customers entity konfigürasyonu
+            modelBuilder.Entity<Customers>(entity =>
+            {
+                entity.ToTable("Customers", "BigIntSoftware");
+                entity.HasKey(e => e.Id);
+                
+                // Temel alanlar
+                entity.Property(e => e.CompanyName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.FirstName).HasMaxLength(50);
+                entity.Property(e => e.LastName).HasMaxLength(50);
+                entity.Property(e => e.ContactPerson).HasMaxLength(100);
+                
+                // İletişim bilgileri
+                entity.Property(e => e.Phone).HasMaxLength(20);
+                entity.Property(e => e.MobilePhone).HasMaxLength(20);
+                entity.Property(e => e.Email).HasMaxLength(100);
+                entity.Property(e => e.Website).HasMaxLength(100);
+                
+                // Adres bilgileri
+                entity.Property(e => e.Address).HasMaxLength(200);
+                entity.Property(e => e.City).HasMaxLength(50);
+                entity.Property(e => e.State).HasMaxLength(50);
+                entity.Property(e => e.PostalCode).HasMaxLength(20);
+                entity.Property(e => e.Country).HasMaxLength(50);
+                
+                // Vergi bilgileri
+                entity.Property(e => e.TcNumber).HasMaxLength(11);
+                entity.Property(e => e.TaxNumber).HasMaxLength(10);
+                entity.Property(e => e.TaxOffice).HasMaxLength(50);
+                entity.Property(e => e.TaxOfficeCode).HasMaxLength(50);
+                entity.Property(e => e.EInvoiceAlias).HasMaxLength(20);
+                entity.Property(e => e.EInvoiceTitle).HasMaxLength(50);
+                
+                // Avrupa bilgileri
+                entity.Property(e => e.VatNumber).HasMaxLength(20);
+                entity.Property(e => e.VatCountryCode).HasMaxLength(10);
+                entity.Property(e => e.LegalEntityType).HasMaxLength(50);
+                entity.Property(e => e.CustomerType).HasMaxLength(50);
+                
+                // Banka bilgileri
+                entity.Property(e => e.BankName).HasMaxLength(50);
+                entity.Property(e => e.BankBranch).HasMaxLength(50);
+                entity.Property(e => e.BankAccountNumber).HasMaxLength(30);
+                entity.Property(e => e.Iban).HasMaxLength(20);
+                entity.Property(e => e.SwiftCode).HasMaxLength(20);
+                
+                // Ticari bilgiler
+                entity.Property(e => e.TradeRegistryNumber).HasMaxLength(50);
+                entity.Property(e => e.ChamberOfCommerce).HasMaxLength(50);
+                entity.Property(e => e.MersisNumber).HasMaxLength(50);
+                entity.Property(e => e.ActivityCode).HasMaxLength(50);
+                entity.Property(e => e.ActivityDescription).HasMaxLength(200);
+                
+                // Fatura bilgileri
+                entity.Property(e => e.PaymentMethod).HasMaxLength(20);
+                entity.Property(e => e.Currency).HasMaxLength(20).HasDefaultValue("TRY");
+                
+                // E-Fatura bilgileri
+                entity.Property(e => e.EInvoiceProfile).HasMaxLength(50);
+                entity.Property(e => e.EArchiveProfile).HasMaxLength(50);
+                entity.Property(e => e.IsEInvoiceEnabled).HasDefaultValue(false);
+                entity.Property(e => e.IsEArchiveEnabled).HasDefaultValue(false);
+                
+                // Sistem bilgileri
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.CreatedDate).HasDefaultValueSql("GETDATE()");
+                entity.Property(e => e.CreatedBy).HasMaxLength(50);
+                entity.Property(e => e.UpdatedBy).HasMaxLength(50);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.InternalNotes).HasMaxLength(500);
+                
+                // Kategorizasyon
+                entity.Property(e => e.CustomerGroup).HasMaxLength(50);
+                entity.Property(e => e.CustomerSegment).HasMaxLength(50);
+                entity.Property(e => e.Source).HasMaxLength(50);
+                
+                // Sosyal medya
+                entity.Property(e => e.LinkedIn).HasMaxLength(100);
+                entity.Property(e => e.Twitter).HasMaxLength(100);
+                entity.Property(e => e.Facebook).HasMaxLength(100);
+                entity.Property(e => e.Instagram).HasMaxLength(100);
+                
+                // Ek adresler
+                entity.Property(e => e.DeliveryAddress).HasMaxLength(200);
+                entity.Property(e => e.BillingAddress).HasMaxLength(200);
+                entity.Property(e => e.DeliveryCity).HasMaxLength(50);
+                entity.Property(e => e.BillingCity).HasMaxLength(50);
+                entity.Property(e => e.DeliveryPostalCode).HasMaxLength(20);
+                entity.Property(e => e.BillingPostalCode).HasMaxLength(20);
+                
+                // Risk bilgileri
+                entity.Property(e => e.RiskLevel).HasMaxLength(20);
+                entity.Property(e => e.CreditRating).HasMaxLength(20);
+                entity.Property(e => e.IsBlacklisted).HasDefaultValue(false);
+                entity.Property(e => e.BlacklistReason).HasMaxLength(500);
+                
+                // Yasal uyumluluk
+                entity.Property(e => e.GdprConsent).HasDefaultValue(false);
+                entity.Property(e => e.MarketingConsent).HasDefaultValue(false);
+                entity.Property(e => e.SmsConsent).HasDefaultValue(false);
+                entity.Property(e => e.EmailConsent).HasDefaultValue(false);
+                
+                // Dil ayarları
+                entity.Property(e => e.Language).HasMaxLength(10).HasDefaultValue("tr-TR");
+                entity.Property(e => e.TimeZone).HasMaxLength(10).HasDefaultValue("Turkey Standard Time");
+                entity.Property(e => e.DateFormat).HasMaxLength(10).HasDefaultValue("dd.MM.yyyy");
+                entity.Property(e => e.NumberFormat).HasMaxLength(10).HasDefaultValue("tr-TR");
+                
+                // Decimal precision
+                entity.Property(e => e.CreditLimit).HasPrecision(18, 2);
+                entity.Property(e => e.DiscountRate).HasPrecision(5, 2);
+                entity.Property(e => e.TotalSales).HasPrecision(18, 2);
+                
+                // Index'ler
+                entity.HasIndex(e => e.CompanyName);
+                entity.HasIndex(e => e.Email).IsUnique().HasFilter("[Email] IS NOT NULL AND [Email] != ''");
+                entity.HasIndex(e => e.TaxNumber).IsUnique().HasFilter("[TaxNumber] IS NOT NULL AND [TaxNumber] != ''");
+                entity.HasIndex(e => e.TcNumber).IsUnique().HasFilter("[TcNumber] IS NOT NULL AND [TcNumber] != ''");
+                entity.HasIndex(e => e.VatNumber);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CustomerType);
+                entity.HasIndex(e => e.CreatedDate);
             });
         }
     }
