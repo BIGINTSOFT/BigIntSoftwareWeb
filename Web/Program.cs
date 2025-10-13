@@ -37,6 +37,7 @@ namespace Web
             builder.Services.AddScoped<IGenericRepository<RoleMenu>, GenericRepository<RoleMenu>>();
             builder.Services.AddScoped<IGenericRepository<RoleMenuPermission>, GenericRepository<RoleMenuPermission>>();
             builder.Services.AddScoped<IGenericRepository<Customers>, GenericRepository<Customers>>();
+            builder.Services.AddScoped<IGenericRepository<Suppliers>, GenericRepository<Suppliers>>();
 
             // Repository pattern - Specific Repositories
             builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -49,6 +50,7 @@ namespace Web
             builder.Services.AddScoped<IRoleMenuRepository, RoleMenuRepository>();
             builder.Services.AddScoped<IRoleMenuPermissionRepository, RoleMenuPermissionRepository>();
             builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+            builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 
             // Authentication
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
