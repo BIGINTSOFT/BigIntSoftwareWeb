@@ -4,7 +4,7 @@ namespace Entities.Dto
 {
     public class CustomerDto
     {
-        public int Id { get; set; }
+        public int? Id { get; set; }
 
         // Temel Müşteri Bilgileri
         [Required(ErrorMessage = "Şirket adı zorunludur")]
@@ -246,7 +246,7 @@ namespace Entities.Dto
         public string Language { get; set; } = "tr-TR";
 
         [StringLength(10, ErrorMessage = "Saat dilimi en fazla 10 karakter olabilir")]
-        public string TimeZone { get; set; } = "Turkey Standard Time";
+        public string TimeZone { get; set; } = "dd.MM.yyyy";
 
         [StringLength(10, ErrorMessage = "Tarih formatı en fazla 10 karakter olabilir")]
         public string DateFormat { get; set; } = "dd.MM.yyyy";

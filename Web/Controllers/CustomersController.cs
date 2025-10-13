@@ -120,13 +120,62 @@ namespace Web.Controllers
                 CustomerDto? customerDto;
                 try
                 {
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                        NumberHandling = JsonNumberHandling.AllowReadingFromString
-                    };
+                    // Önce Id alanını temizle (create işlemi için)
+                    var jsonObject = System.Text.Json.JsonDocument.Parse(jsonData);
+                    var root = jsonObject.RootElement;
                     
-                    customerDto = System.Text.Json.JsonSerializer.Deserialize<CustomerDto>(jsonData, options);
+                    // Id alanını kaldır veya null yap
+                    if (root.TryGetProperty("Id", out var idElement))
+                    {
+                        // Id alanını kaldırmak için yeni bir JSON oluştur
+                        var jsonDict = new Dictionary<string, object>();
+                        foreach (var property in root.EnumerateObject())
+                        {
+                            if (property.Name.Equals("Id", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // Id alanını null olarak ayarla
+                                jsonDict[property.Name] = null;
+                            }
+                            else
+                            {
+                                // Diğer alanları olduğu gibi ekle
+                                jsonDict[property.Name] = property.Value.ValueKind switch
+                                {
+                                    JsonValueKind.String => property.Value.GetString(),
+                                    JsonValueKind.Number => property.Value.GetDecimal(),
+                                    JsonValueKind.True => true,
+                                    JsonValueKind.False => false,
+                                    JsonValueKind.Null => null,
+                                    _ => property.Value.ToString()
+                                };
+                            }
+                        }
+                        
+                        // Temizlenmiş JSON'u serialize et
+                        var cleanJson = System.Text.Json.JsonSerializer.Serialize(jsonDict);
+                        Console.WriteLine($"Temizlenmiş JSON: {cleanJson}");
+                        
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+                        
+                        customerDto = System.Text.Json.JsonSerializer.Deserialize<CustomerDto>(cleanJson, options);
+                    }
+                    else
+                    {
+                        // Id alanı yoksa direkt deserialize et
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                        };
+                        
+                        customerDto = System.Text.Json.JsonSerializer.Deserialize<CustomerDto>(jsonData, options);
+                    }
                 }
                 catch (JsonException ex)
                 {
@@ -148,98 +197,6 @@ namespace Web.Controllers
                 }
 
                 Console.WriteLine($"Deserialize edilen - CompanyName: {customerDto.CompanyName}");
-
-                var customer = new Customers
-                {
-                    CompanyName = customerDto.CompanyName,
-                    FirstName = customerDto.FirstName,
-                    LastName = customerDto.LastName,
-                    ContactPerson = customerDto.ContactPerson,
-                    CustomerType = customerDto.CustomerType,
-                    CustomerGroup = customerDto.CustomerGroup,
-                    CustomerSegment = customerDto.CustomerSegment,
-                    IsActive = customerDto.IsActive,
-                    Phone = customerDto.Phone,
-                    MobilePhone = customerDto.MobilePhone,
-                    Email = customerDto.Email,
-                    Website = customerDto.Website,
-                    LinkedIn = customerDto.LinkedIn,
-                    Twitter = customerDto.Twitter,
-                    Address = customerDto.Address,
-                    City = customerDto.City,
-                    State = customerDto.State,
-                    PostalCode = customerDto.PostalCode,
-                    Country = customerDto.Country,
-                    DeliveryAddress = customerDto.DeliveryAddress,
-                    DeliveryCity = customerDto.DeliveryCity,
-                    DeliveryPostalCode = customerDto.DeliveryPostalCode,
-                    TcNumber = customerDto.TcNumber,
-                    TaxNumber = customerDto.TaxNumber,
-                    TaxOffice = customerDto.TaxOffice,
-                    TaxOfficeCode = customerDto.TaxOfficeCode,
-                    EInvoiceAlias = customerDto.EInvoiceAlias,
-                    EInvoiceTitle = customerDto.EInvoiceTitle,
-                    VatNumber = customerDto.VatNumber,
-                    VatCountryCode = customerDto.VatCountryCode,
-                    LegalEntityType = customerDto.LegalEntityType,
-                    BankName = customerDto.BankName,
-                    BankBranch = customerDto.BankBranch,
-                    BankAccountNumber = customerDto.BankAccountNumber,
-                    Iban = customerDto.Iban,
-                    SwiftCode = customerDto.SwiftCode,
-                    TradeRegistryNumber = customerDto.TradeRegistryNumber,
-                    ChamberOfCommerce = customerDto.ChamberOfCommerce,
-                    MersisNumber = customerDto.MersisNumber,
-                    ActivityCode = customerDto.ActivityCode,
-                    ActivityDescription = customerDto.ActivityDescription,
-                    PaymentMethod = customerDto.PaymentMethod,
-                    PaymentTermDays = customerDto.PaymentTermDays,
-                    CreditLimit = customerDto.CreditLimit,
-                    DiscountRate = customerDto.DiscountRate,
-                    Currency = customerDto.Currency,
-                    IsEInvoiceEnabled = customerDto.IsEInvoiceEnabled,
-                    IsEArchiveEnabled = customerDto.IsEArchiveEnabled,
-                    EInvoiceProfile = customerDto.EInvoiceProfile,
-                    EArchiveProfile = customerDto.EArchiveProfile,
-                    Notes = customerDto.Notes,
-                    InternalNotes = customerDto.InternalNotes,
-                    Source = customerDto.Source,
-                    Language = customerDto.Language,
-                    CreatedDate = DateTime.Now,
-                    CreatedBy = GetCurrentUserId()
-                };
-
-                await _customerRepository.AddAsync(customer);
-
-                return Json(new { 
-                    success = true, 
-                    message = "Müşteri başarıyla oluşturuldu.",
-                    data = customer 
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { 
-                    success = false, 
-                    message = $"Hata: {ex.Message}" 
-                });
-            }
-        }
-
-        // Yeni müşteri oluştur - Form data ile
-        [HttpPost]
-        public async Task<IActionResult> CreateCustomer([FromForm] CustomerDto customerDto)
-        {
-            try
-            {
-                // Null kontrolü
-                if (customerDto == null)
-                {
-                    return Json(new { 
-                        success = false, 
-                        message = "Müşteri bilgileri alınamadı." 
-                    });
-                }
 
                 var customer = new Customers
                 {
@@ -359,7 +316,8 @@ namespace Web.Controllers
                     var options = new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true,
-                        NumberHandling = JsonNumberHandling.AllowReadingFromString
+                        NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                     };
                     
                     customerDto = System.Text.Json.JsonSerializer.Deserialize<CustomerDto>(jsonData, options);
@@ -394,123 +352,7 @@ namespace Web.Controllers
                     });
                 }
 
-                var existingCustomer = await _customerRepository.GetByIdAsync(customerDto.Id);
-                if (existingCustomer == null)
-                {
-                    return Json(new { 
-                        success = false, 
-                        message = "Müşteri bulunamadı." 
-                    });
-                }
-
-                // Güncelleme
-                existingCustomer.CompanyName = customerDto.CompanyName;
-                existingCustomer.FirstName = customerDto.FirstName;
-                existingCustomer.LastName = customerDto.LastName;
-                existingCustomer.ContactPerson = customerDto.ContactPerson;
-                existingCustomer.CustomerType = customerDto.CustomerType;
-                existingCustomer.CustomerGroup = customerDto.CustomerGroup;
-                existingCustomer.CustomerSegment = customerDto.CustomerSegment;
-                existingCustomer.IsActive = customerDto.IsActive;
-                existingCustomer.Phone = customerDto.Phone;
-                existingCustomer.MobilePhone = customerDto.MobilePhone;
-                existingCustomer.Email = customerDto.Email;
-                existingCustomer.Website = customerDto.Website;
-                existingCustomer.LinkedIn = customerDto.LinkedIn;
-                existingCustomer.Twitter = customerDto.Twitter;
-                existingCustomer.Address = customerDto.Address;
-                existingCustomer.City = customerDto.City;
-                existingCustomer.State = customerDto.State;
-                existingCustomer.PostalCode = customerDto.PostalCode;
-                existingCustomer.Country = customerDto.Country;
-                existingCustomer.DeliveryAddress = customerDto.DeliveryAddress;
-                existingCustomer.DeliveryCity = customerDto.DeliveryCity;
-                existingCustomer.DeliveryPostalCode = customerDto.DeliveryPostalCode;
-                existingCustomer.TcNumber = customerDto.TcNumber;
-                existingCustomer.TaxNumber = customerDto.TaxNumber;
-                existingCustomer.TaxOffice = customerDto.TaxOffice;
-                existingCustomer.TaxOfficeCode = customerDto.TaxOfficeCode;
-                existingCustomer.EInvoiceAlias = customerDto.EInvoiceAlias;
-                existingCustomer.EInvoiceTitle = customerDto.EInvoiceTitle;
-                existingCustomer.VatNumber = customerDto.VatNumber;
-                existingCustomer.VatCountryCode = customerDto.VatCountryCode;
-                existingCustomer.LegalEntityType = customerDto.LegalEntityType;
-                existingCustomer.BankName = customerDto.BankName;
-                existingCustomer.BankBranch = customerDto.BankBranch;
-                existingCustomer.BankAccountNumber = customerDto.BankAccountNumber;
-                existingCustomer.Iban = customerDto.Iban;
-                existingCustomer.SwiftCode = customerDto.SwiftCode;
-                existingCustomer.TradeRegistryNumber = customerDto.TradeRegistryNumber;
-                existingCustomer.ChamberOfCommerce = customerDto.ChamberOfCommerce;
-                existingCustomer.MersisNumber = customerDto.MersisNumber;
-                existingCustomer.ActivityCode = customerDto.ActivityCode;
-                existingCustomer.ActivityDescription = customerDto.ActivityDescription;
-                existingCustomer.PaymentMethod = customerDto.PaymentMethod;
-                existingCustomer.PaymentTermDays = customerDto.PaymentTermDays;
-                existingCustomer.CreditLimit = customerDto.CreditLimit;
-                existingCustomer.DiscountRate = customerDto.DiscountRate;
-                existingCustomer.Currency = customerDto.Currency;
-                existingCustomer.IsEInvoiceEnabled = customerDto.IsEInvoiceEnabled;
-                existingCustomer.IsEArchiveEnabled = customerDto.IsEArchiveEnabled;
-                existingCustomer.EInvoiceProfile = customerDto.EInvoiceProfile;
-                existingCustomer.EArchiveProfile = customerDto.EArchiveProfile;
-                existingCustomer.Notes = customerDto.Notes;
-                existingCustomer.InternalNotes = customerDto.InternalNotes;
-                existingCustomer.Source = customerDto.Source;
-                existingCustomer.Language = customerDto.Language;
-                existingCustomer.UpdatedDate = DateTime.Now;
-                existingCustomer.UpdatedBy = GetCurrentUserId();
-
-                await _customerRepository.UpdateAsync(existingCustomer);
-
-                return Json(new { 
-                    success = true, 
-                    message = "Müşteri başarıyla güncellendi.",
-                    data = existingCustomer 
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { 
-                    success = false, 
-                    message = $"Hata: {ex.Message}" 
-                });
-            }
-        }
-
-        // Müşteri güncelle - Form data ile
-        [HttpPost]
-        public async Task<IActionResult> UpdateCustomer([FromForm] CustomerDto customerDto)
-        {
-            try
-            {
-                // Debug log
-                Console.WriteLine($"UpdateCustomer çağrıldı. customerDto: {customerDto != null}");
-                if (customerDto != null)
-                {
-                    Console.WriteLine($"ID: {customerDto.Id}, CompanyName: {customerDto.CompanyName}");
-                }
-
-                // Null kontrolü
-                if (customerDto == null)
-                {
-                    Console.WriteLine("customerDto null!");
-                    return Json(new { 
-                        success = false, 
-                        message = "Müşteri bilgileri alınamadı." 
-                    });
-                }
-
-                if (customerDto.Id <= 0)
-                {
-                    Console.WriteLine($"Geçersiz ID: {customerDto.Id}");
-                    return Json(new { 
-                        success = false, 
-                        message = "Geçersiz müşteri ID'si." 
-                    });
-                }
-
-                var existingCustomer = await _customerRepository.GetByIdAsync(customerDto.Id);
+                var existingCustomer = await _customerRepository.GetByIdAsync(customerDto.Id.Value);
                 if (existingCustomer == null)
                 {
                     return Json(new { 

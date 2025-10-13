@@ -240,7 +240,7 @@ namespace Entities.Entity
         public string Language { get; set; } = "tr-TR"; // Dil
 
         [StringLength(10)]
-        public string TimeZone { get; set; } = "Turkey Standard Time"; // Saat Dilimi
+        public string TimeZone { get; set; } = "dd.MM.yyyy"; // Saat Dilimi
 
         [StringLength(10)]
         public string DateFormat { get; set; } = "dd.MM.yyyy"; // Tarih Formatı

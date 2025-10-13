@@ -335,7 +335,7 @@ function initializeMenuManagement() {
             IsVisible: $('#menuIsVisible').is(':checked')
         };
 
-            const url = isEditMode ? '/Menu/Update' : '/Menu/Create';
+            const url = isEditMode ? '/Menu/UpdateMenu' : '/Menu/CreateMenu';
             const method = 'POST';
 
         $.ajax({

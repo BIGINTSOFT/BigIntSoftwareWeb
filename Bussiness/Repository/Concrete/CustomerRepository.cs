@@ -28,7 +28,6 @@ namespace Bussiness.Repository.Concrete
             return await _dbSet.Where(c => c.IsBlacklisted == true).ToListAsync();
         }
 
-
         // İstatistikler için
         public async Task<int> GetActiveCustomerCountAsync()
         {
